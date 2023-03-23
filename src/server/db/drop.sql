@@ -1,0 +1,9 @@
+BEGIN;
+
+DROP TABLE IF EXISTS MESSAGES CASCADE;
+
+DROP INDEX IF EXISTS unique_reactions;
+
+DROP INDEX IF EXISTS group_name_msg_type;
+
+COMMIT;

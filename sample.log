@@ -1,0 +1,45 @@
+> u john
+Username switched. Current username: john
+[john]> j avengers
+Group switched to: avengers
+(avengers)[john]> 
+=======================================
+Participants: john
+=======================================
+Recent Messages:
+=======================================
+
+
+(avengers)[john]> a hello
+
+(avengers)[john]> 
+=======================================
+Participants: john
+=======================================
+Recent Messages:
+
+        1. [john] hello likes: 0
+=======================================
+
+
+(avengers)[john]> a world
+
+(avengers)[john]> 
+=======================================
+Participants: john
+=======================================
+Recent Messages:
+
+        1. [john] hello likes: 0
+        2. [john] world likes: 0
+=======================================
+
+
+(avengers)[john]> p
+        1. [john] hello likes: 0
+        2. [john] world likes: 0
+
+(avengers)[john]> l 1
+Can't like own message
+
+(avengers)[john]> 

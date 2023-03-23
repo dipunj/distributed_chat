@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  server:
+    image: chat-server:latest
+    container_name: chat_server
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - chat_network
+
+  db:
+    image: chat-db:latest
+    container_name: chat_db
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5000"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      - chat_network
+
+  client1:
+    image: chat-client:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: client
+    container_name: chat_client1
+    depends_on:
+      - server
+    networks:
+      - chat_network
+
+  client2:
+    image: chat-client:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: client
+    container_name: chat_client2
+    depends_on:
+      - server
+    networks:
+      - chat_network
+
+networks:
+  chat_network:
+    name: chat
+
+volumes:
+  db_data:

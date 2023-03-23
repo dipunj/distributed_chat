@@ -1,0 +1,55 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "./pb";
+
+message TextMessage {
+  optional int64 id = 16;
+  string sender_name = 2;
+  string group_name = 3;
+  string content = 5;
+  int64 likedBy = 6;
+  optional google.protobuf.Timestamp clientSentAt = 17;
+  optional google.protobuf.Timestamp serverReceivedAt = 18;
+}
+
+message Reaction {
+  optional int64 id = 16;
+  string sender_name = 2;
+  string group_name = 3;
+  int64 on_message_id = 4; // the message id on which the reaction is done
+  string content = 5;      // "like" | "unlike"
+  optional google.protobuf.Timestamp clientSentAt = 17;
+  optional google.protobuf.Timestamp serverReceivedAt = 18;
+}
+
+message GroupDetails {
+  bool status = 1;
+  repeated string onlineUserNames = 2;
+  repeated TextMessage recentMessages = 3;
+}
+
+message UserState {
+  optional string user_name = 16;
+  optional string group_name = 17;
+}
+
+message Status { bool status = 1; }
+
+message GroupName { string group_name = 1; }
+
+message GroupHistory { repeated TextMessage messages = 1; }
+
+service GroupChat {
+
+  rpc CreateNewMessage(TextMessage) returns (Status) {}
+  rpc UpdateReaction(Reaction) returns (Status) {}
+
+  rpc SwitchUser(UserState) returns (Status) {}
+  rpc SwitchGroup(UserState) returns (GroupDetails) {}
+
+  rpc PrintGroupHistory(GroupName) returns (GroupHistory) {}
+
+  rpc Subscribe(google.protobuf.Empty) returns (stream GroupDetails) {}
+}
