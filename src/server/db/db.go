@@ -13,8 +13,10 @@ const (
 	USERNAME = "postgres"
 	PASSWORD = "postgres"
 	DB_NAME  = "postgres"
-	HOST     = "chat_db"
-	PORT     = 5432
+
+	// TODO change this to a "chat_db" when running from a container
+	HOST = "localhost"
+	PORT = 5432
 )
 
 // urlExample := "postgres://username:password@localhost:5432/database_name"
