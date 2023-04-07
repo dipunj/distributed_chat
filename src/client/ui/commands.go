@@ -13,5 +13,6 @@ const (
 	PRINT_ALL = "p"
 	QUIT      = "q"
 
-	CLEAR_SCREEN = "c"
+	CONNECT      = "c"
+	CLEAR_SCREEN = "x"
 )

@@ -46,6 +46,10 @@ func parseUserInput(trimmedInput string) (string, string, error) {
 	}
 
 	switch command {
+	case CONNECT:
+		{
+			return command, arg, nil
+		}
 	case SEND_MESSAGE:
 		{
 			if len(arg) > MESSAGE_CHAR_LIMIT {
@@ -76,7 +80,8 @@ func showHelp() {
 	fmt.Println("Usage:")
 	fmt.Println("\t h: help")
 	fmt.Println("\t q: quits the program")
-	fmt.Println("\t c: clear the screen (might now work on some terminals)")
+	fmt.Println("\t c <server_address>: connects to the server at <server_address> (e.g. localhost:8080)")
+	fmt.Println("\t x: clear the screen (might not work on some terminals)")
 	fmt.Println("\t p: shows the entire message history of the current group")
 	fmt.Println("\t a <message>: sends the <message> to current group")
 	fmt.Println("\t u <user_name>: switches the user to <user_name>")
@@ -181,7 +186,19 @@ func RenderGroupDetails() {
 }
 
 func commandController(command, arg string) {
+	if command != CONNECT && !network.IsConnected() {
+		fmt.Println("Not connected to server. Please connect first")
+		showHelp()
+		return
+	}
+
 	switch command {
+	case CONNECT:
+		{
+			network.EstablishConnection(arg)
+			return
+
+		}
 	case HELP:
 		{
 			showHelp()

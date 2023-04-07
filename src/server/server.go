@@ -28,6 +28,5 @@ func main() {
 	defer db.TerminateDBConn()
 
 	// sync from other replicas
-	db.SyncFromReplicas()
 	network.ServeRequests(serverAddress)
 }

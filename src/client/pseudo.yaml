@@ -1,0 +1,11 @@
+# pseudo code for how the client works
+
+- main
+  - go ui.UserViewLoop() [runs on a separate thread]
+    - Infinitely loop
+      - If state.reRender is true
+        - ui.RenderGroupDetails()
+  - ui.UserInputLoop() [runs on main thread]
+    - Infinitely loop
+      - parseUser Input
+      - commandController
