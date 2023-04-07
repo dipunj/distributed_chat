@@ -13,7 +13,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -84,14 +86,14 @@ func EstablishConnection(serverAddress string) {
 	client := pb.NewGroupChatClient(conn)
 
 	if IsConnected() {
-		state.RpcConn.Close()
-		state.ChatClient = nil
+		GracefulDisconnect("Connected to new server at" + parsedAddress)
 	}
 
 	state.RpcConn = conn
 	state.ChatClient = client
 
 	EstablishStream()
+	log.Info("Successfully connected to server at ", parsedAddress)
 }
 
 func ListenForUpdatesInBackground(conn pb.GroupChat_SubscribeClient) {
@@ -102,8 +104,19 @@ func ListenForUpdatesInBackground(conn pb.GroupChat_SubscribeClient) {
 		msg, err := conn.Recv()
 
 		if err != nil {
-			GracefulQuit("Server is down")
+			code := status.Code(err)
+
+			if code == codes.Unavailable {
+				// connection was closed because the server is unavailable
+				GracefulDisconnect("Server can't be reached")
+			} else if code == codes.Canceled {
+				// connection was closed by the client
+			} else {
+				log.Debug("An error occurred in streaming", err.Error())
+			}
+
 			return
+
 		}
 
 		state.RecentMessages.Replace(msg.RecentMessages)

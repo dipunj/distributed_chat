@@ -168,6 +168,10 @@ func handleReaction(reaction_name, line_no string) {
 
 func RenderGroupDetails() {
 	// backup std in
+	if state.Current_group == "" || state.Current_user == "" {
+		return
+	}
+
 	messages := state.RecentMessages.ListAll()
 	os.Stdout.WriteString("\n=======================================\n")
 	os.Stdout.WriteString("Participants: " + strings.Join(state.Current_group_participants, ", ") + "\n")
@@ -186,11 +190,8 @@ func RenderGroupDetails() {
 }
 
 func commandController(command, arg string) {
-	if command != CONNECT && !network.IsConnected() {
-		fmt.Println("Not connected to server. Please connect first")
-		showHelp()
-		return
-	}
+
+	// the following two commands can be executed even if not connected to server
 
 	switch command {
 	case CONNECT:
@@ -199,11 +200,32 @@ func commandController(command, arg string) {
 			return
 
 		}
+	case QUIT:
+		{
+			network.GracefulDisconnect("User quit the program")
+			os.Exit(0)
+		}
 	case HELP:
 		{
 			showHelp()
 			return
 		}
+	case CLEAR_SCREEN:
+		{
+			fmt.Print("\033[H\033[2J")
+			return
+		}
+	}
+
+	// to execute any other command, the user must be connected to server
+	if command != CONNECT && !network.IsConnected() {
+		log.Error("You are not connected to server. Please connect to a server first")
+		showHelp()
+		return
+	}
+
+	// the following commands can only be executed if connected to server
+	switch command {
 	case LIKE:
 		{
 			handleReaction("like", arg)
@@ -224,11 +246,6 @@ func commandController(command, arg string) {
 			handleSwitchGroup(arg)
 			return
 		}
-	case QUIT:
-		{
-			network.GracefulQuit("")
-			return
-		}
 	case SEND_MESSAGE:
 		{
 			network.SendMessage(arg)
@@ -240,11 +257,5 @@ func commandController(command, arg string) {
 			network.PrintGroupHistory()
 			return
 		}
-	case CLEAR_SCREEN:
-		{
-			fmt.Print("\033[H\033[2J")
-			return
-		}
-
 	}
 }

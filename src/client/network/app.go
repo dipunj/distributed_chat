@@ -6,7 +6,6 @@ import (
 	"chat/client/state"
 	"context"
 	"fmt"
-	"os"
 
 	pb "chat/pb"
 
@@ -121,16 +120,30 @@ func RequestGroupSwitchTo(new_group_name string) bool {
 	}
 }
 
-func GracefulQuit(reason string) {
-	// do clean etc
+func GracefulDisconnect(reason string) {
+
+	state.Current_group = ""
+	state.Current_user = ""
+	state.Current_group_participants = []string{}
+	state.RecentMessages.ClearAll()
+
+	if !IsConnected() {
+		return
+	}
+
+	if reason != "" {
+		log.Info("Disconnecting from server. Reason: ", reason)
+	}
 
 	// close the stream
 	_, cancel := context.WithCancel(context.Background())
 	cancel()
 
+	// reset the chat client
+	state.ChatClient = nil
+
 	// close the rpc connection
 	state.RpcConn.Close()
 
-	fmt.Println("Exiting...", reason)
-	os.Exit(0)
+	state.Rerender <- true
 }
