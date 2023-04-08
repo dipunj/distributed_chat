@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
+import "comm.proto";
 
 option go_package = "./replica_pb";
 
