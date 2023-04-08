@@ -34,6 +34,7 @@ type ReplicationServerType struct {
 	pb.UnimplementedReplicationServer
 
 	selfID         int
+	vector_clock   VectorClock
 	onlineReplicas map[string]bool
 	GrpcServer     *grpc.Server
 	Listener       net.Listener
