@@ -44,7 +44,7 @@ func ServerRequestsToReplicas(serverAddress string, serverID int) {
 
 	l := getTCPListener(serverAddress)
 	InternalServer.GrpcServer = grpc.NewServer()
-	pb.RegisterReplicationServer(PublicServer.GrpcServer, &InternalServer)
+	pb.RegisterReplicationServer(InternalServer.GrpcServer, &InternalServer)
 
 	// Serve() accepts each connection
 	// and spawns a new goroutine for each new request
