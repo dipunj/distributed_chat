@@ -9,8 +9,12 @@ type VectorClock struct {
 	clocks []int
 }
 
-func (vc *VectorClock) Increment(my_id int) {
+// Increment the vector clock and return its previous value
+func (vc *VectorClock) Increment(my_id int) VectorClock {
+	var ret = VectorClock{clocks: make([]int, len(vc.clocks))}
+	copy(ret.clocks, vc.clocks)
 	vc.clocks[my_id] += 1
+	return ret
 }
 
 func (vc *VectorClock) UpdateFrom(other VectorClock, my_id int) {
@@ -25,7 +29,7 @@ func (vc *VectorClock) UpdateFrom(other VectorClock, my_id int) {
 	}
 }
 
-func (vc *VectorClock) ToDbFormat() string {
+func (vc VectorClock) ToDbFormat() string {
 	var clock_strings = make([]string, len(vc.clocks))
 
 	for i := range clock_strings {
