@@ -33,6 +33,6 @@ func main() {
 	db.ConnectToDB()
 	defer db.TerminateDBConn()
 
-	network.ServerRequestsToReplicas(replication_serve_address, server_id)
+	go network.ServerRequestsToReplicas(replication_serve_address, server_id)
 	network.ServeRequestsToClients(client_serve_address)
 }
