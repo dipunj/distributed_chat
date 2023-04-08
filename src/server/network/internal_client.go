@@ -13,21 +13,17 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	DEFAULT_CONN_TIMEOUT = 5 * time.Second
-)
+const REPLICA_CONNECTION_TIMEOUT = 5 * time.Second
 
-var InternalClient pb.InternalClient = nil
+func ConnectToReplica(ip_address string, replicaID int) {
 
-func ConnectToReplica(replicaAddress string) {
+	log.Info("Connecting to replica at ", ip_address)
 
-	log.Info("Connecting to replica at ", replicaAddress)
-
-	ctx, cancelContext := context.WithTimeout(context.Background(), DEFAULT_CONN_TIMEOUT)
+	ctx, cancelContext := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
 
 	conn, err := grpc.DialContext(
 		ctx,
-		replicaAddress,
+		ip_address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	)
@@ -36,26 +32,41 @@ func ConnectToReplica(replicaAddress string) {
 
 	if err != nil {
 		// raise error
-		log.Info("Unable to dial to server ", err)
+		log.Error("Unable to dial to replica", replicaID, ip_address, "because of:", err)
 		return
 	}
 
-	InternalClient = pb.NewInternalClient(conn)
+	InternalClients[replicaID] = pb.NewInternalClient(conn)
 
-	log.Info("Successfully connected to replica at ", replicaAddress)
+	log.Info("Successfully connected to replica at ", ip_address)
 }
 
 func GetReplicaAddressFromID(replicaID int) string {
-	base_ip := "0.0.0.0"
-	return base_ip + strconv.Itoa(replicaID)
+	ip_prefix := "0.0.0.0"
+	return ip_prefix + strconv.Itoa(replicaID)
 }
 
-func StartInternalClient() {
-	// this function is called after the server has started
-	// it creates a client that connects to the other replicas
-	// and sends and receives messages from them
-	for _, replicaID := range REPLICA_IDS {
+func StartInternalClients() {
+	for _, replicaID := range ReplicaIds {
 		replicaAddress := GetReplicaAddressFromID(replicaID)
-		ConnectToReplica(replicaAddress)
+		ConnectToReplica(replicaAddress, replicaID)
 	}
+}
+
+func CheckReplicaHealth(replicaID int) bool {
+
+	ctx, cancelContext := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
+
+	defer cancelContext()
+
+	healthCheckRequest := pb.HealthCheckRequest{}
+
+	healthCheckResponse, err := InternalClients[replicaID].Check(ctx, &healthCheckRequest)
+
+	if err != nil {
+		log.Error("Unable to check health of replica", replicaID, "because of:", err)
+		return false
+	}
+
+	return healthCheckResponse.Status == pb.HealthCheckResponse_SERVING
 }

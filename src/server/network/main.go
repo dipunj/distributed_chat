@@ -1,65 +1,60 @@
 package network
 
 import (
-	"chat/pb"
+	pb "chat/pb"
 	"net"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-type ReplicaUser struct {
-	client_id  string
-	user_name  string
-	group_name string
-	is_online  bool
+func getTCPListener(serverAddress string) net.Listener {
+	l, err := net.Listen("tcp", serverAddress)
+
+	if err != nil {
+		// raise error
+		log.Fatal("Cannot start server. Reason: TCP Listen Error. Error:", err)
+	} else {
+		log.Info("TCP Listen Successful")
+	}
+
+	return l
 }
 
-type ResponseStream struct {
-	stream     pb.Public_SubscribeServer
-	client_id  string
-	user_name  string
-	group_name string
-	is_online  bool
-	error      chan error
+func ServePublicRequests(ip_address string) {
+	log.Info("Starting public(client) service at", ip_address)
+
+	PublicServer.GrpcServer = grpc.NewServer()
+	pb.RegisterPublicServer(PublicServer.GrpcServer, &PublicServer)
+
+	// Serve() spawns a new goroutine for each new request
+	l := getTCPListener(ip_address)
+	err := PublicServer.GrpcServer.Serve(l)
+
+	if err != nil {
+		log.Fatalf("Error while starting the Public server on the %s listen address %v", l, err.Error())
+	} else {
+		log.Info("Public Server started")
+	}
 }
 
-// this server is used to server client requests
-type PublicServerType struct {
-	pb.UnimplementedPublicServer
+// we server requests to replicas on a different port
+// to keep the client-server and replica-replica
+// communication separate
+func ServeInternalRequests(ip_address string) {
+	log.Info("Starting internal (replication) service at", ip_address)
 
-	// streams to send messages to clients
-	// hash from client_id to the stream object
-	Subscribers map[string]*ResponseStream
+	InternalServer.GrpcServer = grpc.NewServer()
 
-	// this keeps track of users that are online replicas
-	// a map from replica_id to the user object
-	ReplicaSubscribers map[string]*ReplicaUser
+	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
 
-	GrpcServer *grpc.Server
-	Listener   net.Listener
-	DBPool     *pgxpool.Pool
+	// Serve() spawns a new goroutine under the hood for each new request
+	l := getTCPListener(ip_address)
+	err := InternalServer.GrpcServer.Serve(l)
+
+	if err != nil {
+		log.Fatalf("Error while starting the gRPC server on the %s listen address %v", l, err.Error())
+	} else {
+		log.Info("Internal Server started")
+	}
 }
-
-// this server is used to handle replication
-type InternalServerType struct {
-	pb.UnimplementedInternalServer
-
-	SelfID         int
-	OnlineReplicas map[string]bool
-	GrpcServer     *grpc.Server
-	Listener       net.Listener
-	DBPool         *pgxpool.Pool
-}
-
-var PublicServer = PublicServerType{
-	Subscribers: map[string]*ResponseStream{},
-}
-
-var InternalServer = InternalServerType{
-	OnlineReplicas: map[string]bool{},
-}
-
-const REPLICA_COUNT int = 5
-
-var REPLICA_IDS = []int{}

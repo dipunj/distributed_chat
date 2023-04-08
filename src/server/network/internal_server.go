@@ -4,17 +4,8 @@ import (
 	"chat/pb"
 	"context"
 
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
-
-func (s *InternalServerType) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
-	// when a replica calls check,
-	// we inform the replica that we are healthy by returning SERVING
-	return &healthpb.HealthCheckResponse{
-		Status: healthpb.HealthCheckResponse_SERVING,
-	}, nil
-}
 
 func (s *InternalServerType) SyncOnlineUsers(ctx context.Context, msg *pb.UserStateWithClock) (*emptypb.Empty, error) {
 	// this method will be called by the replica when user state changes
@@ -35,4 +26,19 @@ func (s *InternalServerType) SyncReactions(ctx context.Context, msg *pb.Reaction
 	// we need to update the reaction in our server as well
 
 	return &emptypb.Empty{}, nil
+}
+
+// health check methods
+func (s *InternalServerType) Check(ctx context.Context, req *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	// when a replica calls check,
+	// we inform the replica that we are healthy by returning SERVING
+	return &pb.HealthCheckResponse{
+		Status: pb.HealthCheckResponse_SERVING,
+	}, nil
+}
+
+func (s *InternalServerType) Watch(req *pb.HealthCheckRequest, stream pb.Internal_WatchServer) error {
+	return stream.Send(&pb.HealthCheckResponse{
+		Status: pb.HealthCheckResponse_SERVING,
+	})
 }

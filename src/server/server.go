@@ -14,6 +14,9 @@ const (
 	DEFAULT_INTERFACE     = "0.0.0.0"
 	DEFAULT_PUBLIC_PORT   = "12000"
 	DEFAULT_INTERNAL_PORT = "11000"
+
+	PUBLIC_ADDRESS   = DEFAULT_INTERFACE + ":" + DEFAULT_PUBLIC_PORT
+	INTERNAL_ADDRESS = DEFAULT_INTERFACE + ":" + DEFAULT_INTERNAL_PORT
 )
 
 // this function is called before main() to parse the command line arguments
@@ -34,21 +37,24 @@ func UpdateServerID() int {
 	// populate replica_ids array with ids from 1 to replica_count, except selfID
 	for i := 1; i <= network.REPLICA_COUNT; i++ {
 		if i != *server_id {
-			network.REPLICA_IDS = append(network.REPLICA_IDS, i)
+			network.ReplicaIds = append(network.ReplicaIds, i)
 		}
 	}
 	return *server_id
 }
 
 func main() {
+
 	UpdateServerID()
 
-	client_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_PUBLIC_PORT
-	replication_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_INTERNAL_PORT
-
 	db.ConnectToDB()
-	defer db.TerminateDBConn()
 
-	network.ServerRequestsToReplicas(replication_serve_address)
-	network.ServeRequestsToClients(client_serve_address)
+	network.ServePublicRequests(PUBLIC_ADDRESS)
+
+	network.ServeInternalRequests(INTERNAL_ADDRESS)
+
+	// one client per replica
+	network.StartInternalClients()
+
+	db.TerminateDBConn()
 }
