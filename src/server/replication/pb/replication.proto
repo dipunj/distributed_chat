@@ -1,0 +1,32 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "./replica_pb";
+
+message CatchUpRequest {
+    repeated int32 clocks = 1;
+}
+
+message CatchUpReply {
+    repeated int32 clocks = 1;
+    repeated TextMessage message = 2;
+    repeated Reaction reaction = 3;
+}
+
+message Event {
+    repeated int32 clocks = 1;
+    oneof event {
+        TextMessage message = 2;
+        Reaction reaction = 3;
+    }
+}
+
+service ChatReplication {
+//  Do we need this? Can we always use the CatchUp RPC instead?
+    rpc Heartbeat(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+    rpc BroadcastEvent(Event) returns (google.protobuf.Empty) {}
+
+    rpc CatchUp(CatchUpRequest) returns (CatchUpReply) {}
+}
