@@ -26,7 +26,7 @@ func ServeRequestsToClients(serverAddress string) {
 	log.Info("Starting client service at", serverAddress)
 
 	PublicServer.GrpcServer = grpc.NewServer()
-	pb.RegisterGroupChatServer(PublicServer.GrpcServer, &PublicServer)
+	pb.RegisterPublicServer(PublicServer.GrpcServer, &PublicServer)
 
 	// Serve() accepts each connection
 	// and spawns a new goroutine for each new request
@@ -37,14 +37,13 @@ func ServeRequestsToClients(serverAddress string) {
 // to keep the client-server and replica-replica
 // communication separate
 
-func ServerRequestsToReplicas(serverAddress string, serverID int) {
-	InternalServer.selfID = serverID
+func ServerRequestsToReplicas(serverAddress string) {
 
 	log.Info("Starting replication service at", serverAddress)
 
 	l := getTCPListener(serverAddress)
 	InternalServer.GrpcServer = grpc.NewServer()
-	pb.RegisterReplicationServer(PublicServer.GrpcServer, &InternalServer)
+	pb.RegisterInternalServer(PublicServer.GrpcServer, &InternalServer)
 
 	// Serve() accepts each connection
 	// and spawns a new goroutine for each new request

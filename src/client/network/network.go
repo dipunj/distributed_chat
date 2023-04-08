@@ -83,7 +83,7 @@ func EstablishConnection(serverAddress string) {
 		return
 	}
 
-	client := pb.NewGroupChatClient(conn)
+	client := pb.NewPublicClient(conn)
 
 	if IsConnected() {
 		GracefulDisconnect("Connected to new server at" + parsedAddress)
@@ -96,7 +96,7 @@ func EstablishConnection(serverAddress string) {
 	log.Info("Successfully connected to server at ", parsedAddress)
 }
 
-func ListenForUpdatesInBackground(conn pb.GroupChat_SubscribeClient) {
+func ListenForUpdatesInBackground(conn pb.Public_SubscribeClient) {
 	defer state.Wait.Done()
 
 	// loop infinitely

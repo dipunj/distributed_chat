@@ -19,77 +19,77 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// GroupChatClient is the client API for GroupChat service.
+// PublicClient is the client API for Public service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GroupChatClient interface {
+type PublicClient interface {
 	CreateNewMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Status, error)
 	UpdateReaction(ctx context.Context, in *Reaction, opts ...grpc.CallOption) (*Status, error)
 	SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error)
 	SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error)
 	PrintGroupHistory(ctx context.Context, in *GroupName, opts ...grpc.CallOption) (*GroupHistory, error)
-	Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (GroupChat_SubscribeClient, error)
+	Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Public_SubscribeClient, error)
 }
 
-type groupChatClient struct {
+type publicClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGroupChatClient(cc grpc.ClientConnInterface) GroupChatClient {
-	return &groupChatClient{cc}
+func NewPublicClient(cc grpc.ClientConnInterface) PublicClient {
+	return &publicClient{cc}
 }
 
-func (c *groupChatClient) CreateNewMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Status, error) {
+func (c *publicClient) CreateNewMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/GroupChat/CreateNewMessage", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Public/CreateNewMessage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *groupChatClient) UpdateReaction(ctx context.Context, in *Reaction, opts ...grpc.CallOption) (*Status, error) {
+func (c *publicClient) UpdateReaction(ctx context.Context, in *Reaction, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/GroupChat/UpdateReaction", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Public/UpdateReaction", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *groupChatClient) SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error) {
+func (c *publicClient) SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/GroupChat/SwitchUser", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Public/SwitchUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *groupChatClient) SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error) {
+func (c *publicClient) SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error) {
 	out := new(GroupDetails)
-	err := c.cc.Invoke(ctx, "/GroupChat/SwitchGroup", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Public/SwitchGroup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *groupChatClient) PrintGroupHistory(ctx context.Context, in *GroupName, opts ...grpc.CallOption) (*GroupHistory, error) {
+func (c *publicClient) PrintGroupHistory(ctx context.Context, in *GroupName, opts ...grpc.CallOption) (*GroupHistory, error) {
 	out := new(GroupHistory)
-	err := c.cc.Invoke(ctx, "/GroupChat/PrintGroupHistory", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Public/PrintGroupHistory", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *groupChatClient) Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (GroupChat_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &GroupChat_ServiceDesc.Streams[0], "/GroupChat/Subscribe", opts...)
+func (c *publicClient) Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Public_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Public_ServiceDesc.Streams[0], "/Public/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &groupChatSubscribeClient{stream}
+	x := &publicSubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -99,16 +99,16 @@ func (c *groupChatClient) Subscribe(ctx context.Context, in *emptypb.Empty, opts
 	return x, nil
 }
 
-type GroupChat_SubscribeClient interface {
+type Public_SubscribeClient interface {
 	Recv() (*GroupDetails, error)
 	grpc.ClientStream
 }
 
-type groupChatSubscribeClient struct {
+type publicSubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *groupChatSubscribeClient) Recv() (*GroupDetails, error) {
+func (x *publicSubscribeClient) Recv() (*GroupDetails, error) {
 	m := new(GroupDetails)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -116,464 +116,464 @@ func (x *groupChatSubscribeClient) Recv() (*GroupDetails, error) {
 	return m, nil
 }
 
-// GroupChatServer is the server API for GroupChat service.
-// All implementations must embed UnimplementedGroupChatServer
+// PublicServer is the server API for Public service.
+// All implementations must embed UnimplementedPublicServer
 // for forward compatibility
-type GroupChatServer interface {
+type PublicServer interface {
 	CreateNewMessage(context.Context, *TextMessage) (*Status, error)
 	UpdateReaction(context.Context, *Reaction) (*Status, error)
 	SwitchUser(context.Context, *UserState) (*Status, error)
 	SwitchGroup(context.Context, *UserState) (*GroupDetails, error)
 	PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error)
-	Subscribe(*emptypb.Empty, GroupChat_SubscribeServer) error
-	mustEmbedUnimplementedGroupChatServer()
+	Subscribe(*emptypb.Empty, Public_SubscribeServer) error
+	mustEmbedUnimplementedPublicServer()
 }
 
-// UnimplementedGroupChatServer must be embedded to have forward compatible implementations.
-type UnimplementedGroupChatServer struct {
+// UnimplementedPublicServer must be embedded to have forward compatible implementations.
+type UnimplementedPublicServer struct {
 }
 
-func (UnimplementedGroupChatServer) CreateNewMessage(context.Context, *TextMessage) (*Status, error) {
+func (UnimplementedPublicServer) CreateNewMessage(context.Context, *TextMessage) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNewMessage not implemented")
 }
-func (UnimplementedGroupChatServer) UpdateReaction(context.Context, *Reaction) (*Status, error) {
+func (UnimplementedPublicServer) UpdateReaction(context.Context, *Reaction) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateReaction not implemented")
 }
-func (UnimplementedGroupChatServer) SwitchUser(context.Context, *UserState) (*Status, error) {
+func (UnimplementedPublicServer) SwitchUser(context.Context, *UserState) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SwitchUser not implemented")
 }
-func (UnimplementedGroupChatServer) SwitchGroup(context.Context, *UserState) (*GroupDetails, error) {
+func (UnimplementedPublicServer) SwitchGroup(context.Context, *UserState) (*GroupDetails, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SwitchGroup not implemented")
 }
-func (UnimplementedGroupChatServer) PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error) {
+func (UnimplementedPublicServer) PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PrintGroupHistory not implemented")
 }
-func (UnimplementedGroupChatServer) Subscribe(*emptypb.Empty, GroupChat_SubscribeServer) error {
+func (UnimplementedPublicServer) Subscribe(*emptypb.Empty, Public_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
-func (UnimplementedGroupChatServer) mustEmbedUnimplementedGroupChatServer() {}
+func (UnimplementedPublicServer) mustEmbedUnimplementedPublicServer() {}
 
-// UnsafeGroupChatServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GroupChatServer will
+// UnsafePublicServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PublicServer will
 // result in compilation errors.
-type UnsafeGroupChatServer interface {
-	mustEmbedUnimplementedGroupChatServer()
+type UnsafePublicServer interface {
+	mustEmbedUnimplementedPublicServer()
 }
 
-func RegisterGroupChatServer(s grpc.ServiceRegistrar, srv GroupChatServer) {
-	s.RegisterService(&GroupChat_ServiceDesc, srv)
+func RegisterPublicServer(s grpc.ServiceRegistrar, srv PublicServer) {
+	s.RegisterService(&Public_ServiceDesc, srv)
 }
 
-func _GroupChat_CreateNewMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Public_CreateNewMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TextMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GroupChatServer).CreateNewMessage(ctx, in)
+		return srv.(PublicServer).CreateNewMessage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/GroupChat/CreateNewMessage",
+		FullMethod: "/Public/CreateNewMessage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).CreateNewMessage(ctx, req.(*TextMessage))
+		return srv.(PublicServer).CreateNewMessage(ctx, req.(*TextMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_UpdateReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Public_UpdateReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Reaction)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GroupChatServer).UpdateReaction(ctx, in)
+		return srv.(PublicServer).UpdateReaction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/GroupChat/UpdateReaction",
+		FullMethod: "/Public/UpdateReaction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).UpdateReaction(ctx, req.(*Reaction))
+		return srv.(PublicServer).UpdateReaction(ctx, req.(*Reaction))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_SwitchUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Public_SwitchUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserState)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GroupChatServer).SwitchUser(ctx, in)
+		return srv.(PublicServer).SwitchUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/GroupChat/SwitchUser",
+		FullMethod: "/Public/SwitchUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).SwitchUser(ctx, req.(*UserState))
+		return srv.(PublicServer).SwitchUser(ctx, req.(*UserState))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Public_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserState)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GroupChatServer).SwitchGroup(ctx, in)
+		return srv.(PublicServer).SwitchGroup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/GroupChat/SwitchGroup",
+		FullMethod: "/Public/SwitchGroup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).SwitchGroup(ctx, req.(*UserState))
+		return srv.(PublicServer).SwitchGroup(ctx, req.(*UserState))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_PrintGroupHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Public_PrintGroupHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GroupName)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GroupChatServer).PrintGroupHistory(ctx, in)
+		return srv.(PublicServer).PrintGroupHistory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/GroupChat/PrintGroupHistory",
+		FullMethod: "/Public/PrintGroupHistory",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).PrintGroupHistory(ctx, req.(*GroupName))
+		return srv.(PublicServer).PrintGroupHistory(ctx, req.(*GroupName))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Public_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(emptypb.Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GroupChatServer).Subscribe(m, &groupChatSubscribeServer{stream})
+	return srv.(PublicServer).Subscribe(m, &publicSubscribeServer{stream})
 }
 
-type GroupChat_SubscribeServer interface {
+type Public_SubscribeServer interface {
 	Send(*GroupDetails) error
 	grpc.ServerStream
 }
 
-type groupChatSubscribeServer struct {
+type publicSubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *groupChatSubscribeServer) Send(m *GroupDetails) error {
+func (x *publicSubscribeServer) Send(m *GroupDetails) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-// GroupChat_ServiceDesc is the grpc.ServiceDesc for GroupChat service.
+// Public_ServiceDesc is the grpc.ServiceDesc for Public service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var GroupChat_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "GroupChat",
-	HandlerType: (*GroupChatServer)(nil),
+var Public_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Public",
+	HandlerType: (*PublicServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateNewMessage",
-			Handler:    _GroupChat_CreateNewMessage_Handler,
+			Handler:    _Public_CreateNewMessage_Handler,
 		},
 		{
 			MethodName: "UpdateReaction",
-			Handler:    _GroupChat_UpdateReaction_Handler,
+			Handler:    _Public_UpdateReaction_Handler,
 		},
 		{
 			MethodName: "SwitchUser",
-			Handler:    _GroupChat_SwitchUser_Handler,
+			Handler:    _Public_SwitchUser_Handler,
 		},
 		{
 			MethodName: "SwitchGroup",
-			Handler:    _GroupChat_SwitchGroup_Handler,
+			Handler:    _Public_SwitchGroup_Handler,
 		},
 		{
 			MethodName: "PrintGroupHistory",
-			Handler:    _GroupChat_PrintGroupHistory_Handler,
+			Handler:    _Public_PrintGroupHistory_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Subscribe",
-			Handler:       _GroupChat_Subscribe_Handler,
+			Handler:       _Public_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},
 	Metadata: "comm.proto",
 }
 
-// ReplicationClient is the client API for Replication service.
+// InternalClient is the client API for Internal service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ReplicationClient interface {
+type InternalClient interface {
 	// sync online users to and from other replicas
-	SyncOnlineUsers(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncOnlineUsersClient, error)
+	SyncOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync messages to and from other replicas
-	SyncMessages(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncMessagesClient, error)
+	SyncMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
-	SyncReactions(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncReactionsClient, error)
+	SyncReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// health check
+	CheckHealth(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+	WatchHealth(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (Internal_WatchHealthClient, error)
 }
 
-type replicationClient struct {
+type internalClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewReplicationClient(cc grpc.ClientConnInterface) ReplicationClient {
-	return &replicationClient{cc}
+func NewInternalClient(cc grpc.ClientConnInterface) InternalClient {
+	return &internalClient{cc}
 }
 
-func (c *replicationClient) SyncOnlineUsers(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncOnlineUsersClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[0], "/Replication/SyncOnlineUsers", opts...)
+func (c *internalClient) SyncOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/Internal/SyncOnlineUsers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &replicationSyncOnlineUsersClient{stream}
-	return x, nil
+	return out, nil
 }
 
-type Replication_SyncOnlineUsersClient interface {
-	Send(*UserState) error
-	CloseAndRecv() (*emptypb.Empty, error)
-	grpc.ClientStream
+func (c *internalClient) SyncMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/Internal/SyncMessages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-type replicationSyncOnlineUsersClient struct {
-	grpc.ClientStream
+func (c *internalClient) SyncReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/Internal/SyncReactions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-func (x *replicationSyncOnlineUsersClient) Send(m *UserState) error {
-	return x.ClientStream.SendMsg(m)
+func (c *internalClient) CheckHealth(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, "/Internal/CheckHealth", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-func (x *replicationSyncOnlineUsersClient) CloseAndRecv() (*emptypb.Empty, error) {
+func (c *internalClient) WatchHealth(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (Internal_WatchHealthClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Internal_ServiceDesc.Streams[0], "/Internal/WatchHealth", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &internalWatchHealthClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(emptypb.Empty)
+	return x, nil
+}
+
+type Internal_WatchHealthClient interface {
+	Recv() (*HealthCheckResponse, error)
+	grpc.ClientStream
+}
+
+type internalWatchHealthClient struct {
+	grpc.ClientStream
+}
+
+func (x *internalWatchHealthClient) Recv() (*HealthCheckResponse, error) {
+	m := new(HealthCheckResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *replicationClient) SyncMessages(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncMessagesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[1], "/Replication/SyncMessages", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &replicationSyncMessagesClient{stream}
-	return x, nil
-}
-
-type Replication_SyncMessagesClient interface {
-	Send(*TextMessage) error
-	CloseAndRecv() (*emptypb.Empty, error)
-	grpc.ClientStream
-}
-
-type replicationSyncMessagesClient struct {
-	grpc.ClientStream
-}
-
-func (x *replicationSyncMessagesClient) Send(m *TextMessage) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *replicationSyncMessagesClient) CloseAndRecv() (*emptypb.Empty, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(emptypb.Empty)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *replicationClient) SyncReactions(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncReactionsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[2], "/Replication/SyncReactions", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &replicationSyncReactionsClient{stream}
-	return x, nil
-}
-
-type Replication_SyncReactionsClient interface {
-	Send(*Reaction) error
-	CloseAndRecv() (*emptypb.Empty, error)
-	grpc.ClientStream
-}
-
-type replicationSyncReactionsClient struct {
-	grpc.ClientStream
-}
-
-func (x *replicationSyncReactionsClient) Send(m *Reaction) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *replicationSyncReactionsClient) CloseAndRecv() (*emptypb.Empty, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(emptypb.Empty)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// ReplicationServer is the server API for Replication service.
-// All implementations must embed UnimplementedReplicationServer
+// InternalServer is the server API for Internal service.
+// All implementations must embed UnimplementedInternalServer
 // for forward compatibility
-type ReplicationServer interface {
+type InternalServer interface {
 	// sync online users to and from other replicas
-	SyncOnlineUsers(Replication_SyncOnlineUsersServer) error
+	SyncOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error)
 	// sync messages to and from other replicas
-	SyncMessages(Replication_SyncMessagesServer) error
+	SyncMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
-	SyncReactions(Replication_SyncReactionsServer) error
-	mustEmbedUnimplementedReplicationServer()
+	SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
+	// health check
+	CheckHealth(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
+	WatchHealth(*HealthCheckRequest, Internal_WatchHealthServer) error
+	mustEmbedUnimplementedInternalServer()
 }
 
-// UnimplementedReplicationServer must be embedded to have forward compatible implementations.
-type UnimplementedReplicationServer struct {
+// UnimplementedInternalServer must be embedded to have forward compatible implementations.
+type UnimplementedInternalServer struct {
 }
 
-func (UnimplementedReplicationServer) SyncOnlineUsers(Replication_SyncOnlineUsersServer) error {
-	return status.Errorf(codes.Unimplemented, "method SyncOnlineUsers not implemented")
+func (UnimplementedInternalServer) SyncOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncOnlineUsers not implemented")
 }
-func (UnimplementedReplicationServer) SyncMessages(Replication_SyncMessagesServer) error {
-	return status.Errorf(codes.Unimplemented, "method SyncMessages not implemented")
+func (UnimplementedInternalServer) SyncMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncMessages not implemented")
 }
-func (UnimplementedReplicationServer) SyncReactions(Replication_SyncReactionsServer) error {
-	return status.Errorf(codes.Unimplemented, "method SyncReactions not implemented")
+func (UnimplementedInternalServer) SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncReactions not implemented")
 }
-func (UnimplementedReplicationServer) mustEmbedUnimplementedReplicationServer() {}
+func (UnimplementedInternalServer) CheckHealth(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckHealth not implemented")
+}
+func (UnimplementedInternalServer) WatchHealth(*HealthCheckRequest, Internal_WatchHealthServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchHealth not implemented")
+}
+func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
-// UnsafeReplicationServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ReplicationServer will
+// UnsafeInternalServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to InternalServer will
 // result in compilation errors.
-type UnsafeReplicationServer interface {
-	mustEmbedUnimplementedReplicationServer()
+type UnsafeInternalServer interface {
+	mustEmbedUnimplementedInternalServer()
 }
 
-func RegisterReplicationServer(s grpc.ServiceRegistrar, srv ReplicationServer) {
-	s.RegisterService(&Replication_ServiceDesc, srv)
+func RegisterInternalServer(s grpc.ServiceRegistrar, srv InternalServer) {
+	s.RegisterService(&Internal_ServiceDesc, srv)
 }
 
-func _Replication_SyncOnlineUsers_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReplicationServer).SyncOnlineUsers(&replicationSyncOnlineUsersServer{stream})
+func _Internal_SyncOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserStateWithClock)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).SyncOnlineUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/SyncOnlineUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).SyncOnlineUsers(ctx, req.(*UserStateWithClock))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-type Replication_SyncOnlineUsersServer interface {
-	SendAndClose(*emptypb.Empty) error
-	Recv() (*UserState, error)
+func _Internal_SyncMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TextMessageWithClock)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).SyncMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/SyncMessages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).SyncMessages(ctx, req.(*TextMessageWithClock))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_SyncReactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReactionWithClock)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).SyncReactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/SyncReactions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).SyncReactions(ctx, req.(*ReactionWithClock))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_CheckHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).CheckHealth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/CheckHealth",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).CheckHealth(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_WatchHealth_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(HealthCheckRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(InternalServer).WatchHealth(m, &internalWatchHealthServer{stream})
+}
+
+type Internal_WatchHealthServer interface {
+	Send(*HealthCheckResponse) error
 	grpc.ServerStream
 }
 
-type replicationSyncOnlineUsersServer struct {
+type internalWatchHealthServer struct {
 	grpc.ServerStream
 }
 
-func (x *replicationSyncOnlineUsersServer) SendAndClose(m *emptypb.Empty) error {
+func (x *internalWatchHealthServer) Send(m *HealthCheckResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *replicationSyncOnlineUsersServer) Recv() (*UserState, error) {
-	m := new(UserState)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Replication_SyncMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReplicationServer).SyncMessages(&replicationSyncMessagesServer{stream})
-}
-
-type Replication_SyncMessagesServer interface {
-	SendAndClose(*emptypb.Empty) error
-	Recv() (*TextMessage, error)
-	grpc.ServerStream
-}
-
-type replicationSyncMessagesServer struct {
-	grpc.ServerStream
-}
-
-func (x *replicationSyncMessagesServer) SendAndClose(m *emptypb.Empty) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *replicationSyncMessagesServer) Recv() (*TextMessage, error) {
-	m := new(TextMessage)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Replication_SyncReactions_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReplicationServer).SyncReactions(&replicationSyncReactionsServer{stream})
-}
-
-type Replication_SyncReactionsServer interface {
-	SendAndClose(*emptypb.Empty) error
-	Recv() (*Reaction, error)
-	grpc.ServerStream
-}
-
-type replicationSyncReactionsServer struct {
-	grpc.ServerStream
-}
-
-func (x *replicationSyncReactionsServer) SendAndClose(m *emptypb.Empty) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *replicationSyncReactionsServer) Recv() (*Reaction, error) {
-	m := new(Reaction)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// Replication_ServiceDesc is the grpc.ServiceDesc for Replication service.
+// Internal_ServiceDesc is the grpc.ServiceDesc for Internal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Replication_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Replication",
-	HandlerType: (*ReplicationServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+var Internal_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Internal",
+	HandlerType: (*InternalServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SyncOnlineUsers",
+			Handler:    _Internal_SyncOnlineUsers_Handler,
+		},
+		{
+			MethodName: "SyncMessages",
+			Handler:    _Internal_SyncMessages_Handler,
+		},
+		{
+			MethodName: "SyncReactions",
+			Handler:    _Internal_SyncReactions_Handler,
+		},
+		{
+			MethodName: "CheckHealth",
+			Handler:    _Internal_CheckHealth_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "SyncOnlineUsers",
-			Handler:       _Replication_SyncOnlineUsers_Handler,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "SyncMessages",
-			Handler:       _Replication_SyncMessages_Handler,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "SyncReactions",
-			Handler:       _Replication_SyncReactions_Handler,
-			ClientStreams: true,
+			StreamName:    "WatchHealth",
+			Handler:       _Internal_WatchHealth_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "comm.proto",
