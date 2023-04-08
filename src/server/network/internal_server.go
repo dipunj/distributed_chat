@@ -27,18 +27,3 @@ func (s *InternalServerType) SyncReactions(ctx context.Context, msg *pb.Reaction
 
 	return &emptypb.Empty{}, nil
 }
-
-// health check methods
-func (s *InternalServerType) Check(ctx context.Context, req *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
-	// when a replica calls check,
-	// we inform the replica that we are healthy by returning SERVING
-	return &pb.HealthCheckResponse{
-		Status: pb.HealthCheckResponse_SERVING,
-	}, nil
-}
-
-func (s *InternalServerType) Watch(req *pb.HealthCheckRequest, stream pb.Internal_WatchServer) error {
-	return stream.Send(&pb.HealthCheckResponse{
-		Status: pb.HealthCheckResponse_SERVING,
-	})
-}

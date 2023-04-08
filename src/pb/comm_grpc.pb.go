@@ -323,8 +323,6 @@ type InternalClient interface {
 	SyncMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
 	SyncReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
-	Watch(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (Internal_WatchClient, error)
 }
 
 type internalClient struct {
@@ -362,47 +360,6 @@ func (c *internalClient) SyncReactions(ctx context.Context, in *ReactionWithCloc
 	return out, nil
 }
 
-func (c *internalClient) Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	out := new(HealthCheckResponse)
-	err := c.cc.Invoke(ctx, "/Internal/Check", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *internalClient) Watch(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (Internal_WatchClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Internal_ServiceDesc.Streams[0], "/Internal/Watch", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &internalWatchClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Internal_WatchClient interface {
-	Recv() (*HealthCheckResponse, error)
-	grpc.ClientStream
-}
-
-type internalWatchClient struct {
-	grpc.ClientStream
-}
-
-func (x *internalWatchClient) Recv() (*HealthCheckResponse, error) {
-	m := new(HealthCheckResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // InternalServer is the server API for Internal service.
 // All implementations must embed UnimplementedInternalServer
 // for forward compatibility
@@ -413,8 +370,6 @@ type InternalServer interface {
 	SyncMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
 	SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
-	Check(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
-	Watch(*HealthCheckRequest, Internal_WatchServer) error
 	mustEmbedUnimplementedInternalServer()
 }
 
@@ -430,12 +385,6 @@ func (UnimplementedInternalServer) SyncMessages(context.Context, *TextMessageWit
 }
 func (UnimplementedInternalServer) SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SyncReactions not implemented")
-}
-func (UnimplementedInternalServer) Check(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
-}
-func (UnimplementedInternalServer) Watch(*HealthCheckRequest, Internal_WatchServer) error {
-	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
 }
 func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
@@ -504,45 +453,6 @@ func _Internal_SyncReactions_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Internal_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HealthCheckRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InternalServer).Check(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Internal/Check",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).Check(ctx, req.(*HealthCheckRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Internal_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(HealthCheckRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(InternalServer).Watch(m, &internalWatchServer{stream})
-}
-
-type Internal_WatchServer interface {
-	Send(*HealthCheckResponse) error
-	grpc.ServerStream
-}
-
-type internalWatchServer struct {
-	grpc.ServerStream
-}
-
-func (x *internalWatchServer) Send(m *HealthCheckResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 // Internal_ServiceDesc is the grpc.ServiceDesc for Internal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -562,17 +472,7 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SyncReactions",
 			Handler:    _Internal_SyncReactions_Handler,
 		},
-		{
-			MethodName: "Check",
-			Handler:    _Internal_Check_Handler,
-		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Watch",
-			Handler:       _Internal_Watch_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "comm.proto",
 }

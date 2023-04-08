@@ -87,20 +87,6 @@ message ReactionWithClock {
   repeated int64 clock = 19;
 }
 
-// reference: https://github.com/grpc/grpc/blob/master/doc/health-checking.md
-
-message HealthCheckRequest { string service = 1; }
-
-message HealthCheckResponse {
-  enum ServingStatus {
-    UNKNOWN = 0;
-    SERVING = 1;
-    NOT_SERVING = 2;
-    SERVICE_UNKNOWN = 3; // Used only by the Watch method.
-  }
-  ServingStatus status = 1;
-}
-
 // this service is used between replicas
 service Internal {
   // sync online users to and from other replicas
@@ -109,8 +95,4 @@ service Internal {
   rpc SyncMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
   // sync reactions to and from other replicas
   rpc SyncReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
-
-  // health check for replicas
-  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
-  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
 }

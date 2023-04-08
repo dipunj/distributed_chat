@@ -5,9 +5,11 @@ package network
 import (
 	"chat/pb"
 	"context"
+	"math"
 	"strconv"
 	"time"
 
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,6 +28,12 @@ func ConnectToReplica(ip_address string, replicaID int) {
 		ip_address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(
+			grpc_retry.UnaryClientInterceptor(
+				grpc_retry.WithMax(math.MaxUint64),
+				grpc_retry.WithBackoff(grpc_retry.BackoffLinear(time.Second)),
+			),
+		),
 	)
 
 	defer cancelContext()
@@ -51,22 +59,4 @@ func StartInternalClients() {
 		replicaAddress := GetReplicaAddressFromID(replicaID)
 		ConnectToReplica(replicaAddress, replicaID)
 	}
-}
-
-func CheckReplicaHealth(replicaID int) bool {
-
-	ctx, cancelContext := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
-
-	defer cancelContext()
-
-	healthCheckRequest := pb.HealthCheckRequest{}
-
-	healthCheckResponse, err := InternalClients[replicaID].Check(ctx, &healthCheckRequest)
-
-	if err != nil {
-		log.Error("Unable to check health of replica", replicaID, "because of:", err)
-		return false
-	}
-
-	return healthCheckResponse.Status == pb.HealthCheckResponse_SERVING
 }
