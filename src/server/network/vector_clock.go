@@ -1,4 +1,4 @@
-package replication
+package network
 
 type VectorClock struct {
 	my_id  int
