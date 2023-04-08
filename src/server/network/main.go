@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const NUM_REPLICAS = 5
+
 type ResponseStream struct {
 	stream     pb.GroupChat_SubscribeServer
 	client_id  string
@@ -34,7 +36,6 @@ type ReplicationServerType struct {
 	pb.UnimplementedReplicationServer
 
 	selfID         int
-	vector_clock   VectorClock
 	onlineReplicas map[string]bool
 	GrpcServer     *grpc.Server
 	Listener       net.Listener
@@ -48,3 +49,5 @@ var PublicServer = PublicServerType{
 var InternalServer = ReplicationServerType{
 	onlineReplicas: map[string]bool{},
 }
+
+var CurrentTimestamp = VectorClock{clocks: make([]int, NUM_REPLICAS)}
