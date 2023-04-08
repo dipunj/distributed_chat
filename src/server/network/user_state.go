@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *GroupChatServer) SwitchUser(ctx context.Context, msg *pb.UserState) (*pb.Status, error) {
+func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -33,7 +33,7 @@ func (s *GroupChatServer) SwitchUser(ctx context.Context, msg *pb.UserState) (*p
 
 }
 
-func (s *GroupChatServer) SwitchGroup(ctx context.Context, msg *pb.UserState) (*pb.GroupDetails, error) {
+func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (*pb.GroupDetails, error) {
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -58,7 +58,7 @@ func (s *GroupChatServer) SwitchGroup(ctx context.Context, msg *pb.UserState) (*
 	return &response, nil
 }
 
-func (s *GroupChatServer) getRecentMessages(group_name string) []*pb.TextMessage {
+func (s *PublicServerType) getRecentMessages(group_name string) []*pb.TextMessage {
 	var group_recent_messages string = `
 		SELECT 
 			text_message.id,
@@ -134,7 +134,7 @@ func (s *GroupChatServer) getRecentMessages(group_name string) []*pb.TextMessage
 	return recent_messages
 }
 
-func (s *GroupChatServer) getOnlineUsers(group_name string) []string {
+func (s *PublicServerType) getOnlineUsers(group_name string) []string {
 	// go lang doesn't have inbuilt set implementation
 	// following is a work around to get unique user names in a group
 

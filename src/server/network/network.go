@@ -20,19 +20,33 @@ func getTCPListener(serverAddress string) net.Listener {
 	return l
 }
 
-func ServeRequests(serverAddress string) {
+func ServeRequestsToClients(serverAddress string) {
 	l := getTCPListener(serverAddress)
 
-	log.Info("Starting server at", serverAddress)
+	log.Info("Starting client service at", serverAddress)
 
-	Server.GrpcServer = grpc.NewServer()
-	pb.RegisterGroupChatServer(Server.GrpcServer, &Server)
+	PublicServer.GrpcServer = grpc.NewServer()
+	pb.RegisterGroupChatServer(PublicServer.GrpcServer, &PublicServer)
 
 	// Serve() accepts each connection
 	// and spawns a new goroutine for each new request
-	Server.GrpcServer.Serve(l)
+	PublicServer.GrpcServer.Serve(l)
 }
 
-// func BroadCastToGroup() {
+// we server requests to replicas on a different port
+// to keep the client-server and replica-replica
+// communication separate
 
-// }
+func ServerRequestsToReplicas(serverAddress string, serverID int) {
+	InternalServer.selfID = serverID
+
+	log.Info("Starting replication service at", serverAddress)
+
+	l := getTCPListener(serverAddress)
+	InternalServer.GrpcServer = grpc.NewServer()
+	pb.RegisterReplicationServer(PublicServer.GrpcServer, &InternalServer)
+
+	// Serve() accepts each connection
+	// and spawns a new goroutine for each new request
+	InternalServer.GrpcServer.Serve(l)
+}

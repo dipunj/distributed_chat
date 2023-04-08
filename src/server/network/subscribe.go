@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (s *GroupChatServer) Subscribe(_ *emptypb.Empty, stream pb.GroupChat_SubscribeServer) error {
+func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.GroupChat_SubscribeServer) error {
 	ctx := stream.Context()
 	client, _ := peer.FromContext(ctx)
 	clientID := client.Addr.String()
