@@ -1,16 +1,12 @@
 package replication
 
-import (
-
-)
-
 type VectorClock struct {
-	my_id int,
-	clocks [5]int,
+	my_id  int
+	clocks [5]int
 }
 
 func (vc *VectorClock) increment() {
-	vc.clocks[vc.my_id] += 1 += 1 += 1 += 1
+	vc.clocks[vc.my_id] += 1
 }
 
 func (vc *VectorClock) update_from(other VectorClock) {
