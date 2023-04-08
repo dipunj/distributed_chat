@@ -51,3 +51,4 @@ var InternalServer = ReplicationServerType{
 }
 
 var CurrentTimestamp = VectorClock{clocks: make([]int, NUM_REPLICAS)}
+var ReplicaId int

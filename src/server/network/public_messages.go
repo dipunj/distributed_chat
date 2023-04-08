@@ -33,7 +33,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	server_received_at := time.Now()
 	var row pb.TextMessage
 
-	var vector_ts_str = CurrentTimestamp.Increment(0).ToDbFormat()
+	var vector_ts_str = CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
 
 	log.Println(vector_ts_str)
 
@@ -132,7 +132,7 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 		) 
 	`
 
-	vector_ts_str := CurrentTimestamp.Increment(0).ToDbFormat()
+	vector_ts_str := CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
 
 	server_received_at := time.Now()
 
