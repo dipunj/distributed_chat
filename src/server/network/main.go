@@ -37,6 +37,7 @@ type ReplicationServerType struct {
 	onlineReplicas map[string]bool
 	GrpcServer     *grpc.Server
 	Listener       net.Listener
+	DBPool         *pgxpool.Pool
 }
 
 var PublicServer = PublicServerType{

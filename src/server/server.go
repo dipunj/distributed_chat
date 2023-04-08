@@ -33,8 +33,6 @@ func main() {
 	db.ConnectToDB()
 	defer db.TerminateDBConn()
 
-	// sync from other replicas
-
-	network.ServeRequestsToClients(client_serve_address)
 	network.ServerRequestsToReplicas(replication_serve_address, server_id)
+	network.ServeRequestsToClients(client_serve_address)
 }
