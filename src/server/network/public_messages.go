@@ -9,10 +9,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *GroupChatServer) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
 
 	var new_message_query string = `
 		INSERT INTO messages (
@@ -66,7 +67,7 @@ func (s *GroupChatServer) CreateNewMessage(ctx context.Context, msg *pb.TextMess
 	}
 }
 
-func (s *GroupChatServer) broadcastUpdates(group_name string) {
+func (s *PublicServerType) broadcastUpdates(group_name string) {
 
 	wait := sync.WaitGroup{}
 	done := make(chan int)
@@ -108,7 +109,7 @@ func (s *GroupChatServer) broadcastUpdates(group_name string) {
 	<-done
 }
 
-func (s *GroupChatServer) addLike(client_id string, msg *pb.Reaction) (interface{}, error) {
+func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interface{}, error) {
 	var add_reaction_query string = `
 		INSERT INTO messages (
 			message_type,
@@ -146,7 +147,7 @@ func (s *GroupChatServer) addLike(client_id string, msg *pb.Reaction) (interface
 	return row, err
 }
 
-func (s *GroupChatServer) removeLike(msg *pb.Reaction) (interface{}, error) {
+func (s *PublicServerType) removeLike(msg *pb.Reaction) (interface{}, error) {
 
 	var remove_reaction_query string = `
 			DELETE FROM messages
@@ -175,7 +176,7 @@ func (s *GroupChatServer) removeLike(msg *pb.Reaction) (interface{}, error) {
 	return row, err
 }
 
-func (s *GroupChatServer) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
+func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -206,7 +207,7 @@ func (s *GroupChatServer) UpdateReaction(ctx context.Context, msg *pb.Reaction) 
 	return &pb.Status{Status: true}, nil
 }
 
-func (s *GroupChatServer) PrintGroupHistory(ctx context.Context, msg *pb.GroupName) (*pb.GroupHistory, error) {
+func (s *PublicServerType) PrintGroupHistory(ctx context.Context, msg *pb.GroupName) (*pb.GroupHistory, error) {
 	group_name := msg.GroupName
 	var group_recent_messages string = `
 		SELECT 
@@ -277,4 +278,35 @@ func (s *GroupChatServer) PrintGroupHistory(ctx context.Context, msg *pb.GroupNa
 
 	defer rows.Close()
 	return &pb.GroupHistory{Messages: recent_messages}, err
+}
+
+func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.GroupChat_SubscribeServer) error {
+	ctx := stream.Context()
+	client, _ := peer.FromContext(ctx)
+	clientID := client.Addr.String()
+
+	rs := &ResponseStream{
+		stream:     stream,
+		client_id:  clientID,
+		user_name:  "",
+		group_name: "",
+		is_online:  true,
+		error:      make(chan error),
+	}
+
+	s.Subscribers[clientID] = rs
+
+	// Check if the client is offline/disconnected
+	go func() {
+		<-ctx.Done()
+
+		// Update the isOnline field of the ResponseStream to false
+		rs.is_online = false
+		s.broadcastUpdates(rs.group_name)
+
+		// Remove the ResponseStream from the Subscribers map
+		delete(s.Subscribers, clientID)
+	}()
+
+	return <-rs.error
 }

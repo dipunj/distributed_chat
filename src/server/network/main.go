@@ -17,7 +17,8 @@ type ResponseStream struct {
 	error      chan error
 }
 
-type GroupChatServer struct {
+// this server is used to server client requests
+type PublicServerType struct {
 	pb.UnimplementedGroupChatServer
 
 	// streams to send messages to clients
@@ -28,6 +29,21 @@ type GroupChatServer struct {
 	DBPool      *pgxpool.Pool
 }
 
-var Server GroupChatServer = GroupChatServer{
+// this server is used to handle replication
+type ReplicationServerType struct {
+	pb.UnimplementedReplicationServer
+
+	selfID         int
+	onlineReplicas map[string]bool
+	GrpcServer     *grpc.Server
+	Listener       net.Listener
+	DBPool         *pgxpool.Pool
+}
+
+var PublicServer = PublicServerType{
 	Subscribers: map[string]*ResponseStream{},
+}
+
+var InternalServer = ReplicationServerType{
+	onlineReplicas: map[string]bool{},
 }

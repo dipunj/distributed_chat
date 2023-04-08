@@ -35,14 +35,15 @@ func ConnectToDB() {
 		log.Fatal("Failed to establish connection with DB", ping_err)
 	} else {
 		log.Info("Database connection established")
-		network.Server.DBPool = dbPool
+		network.PublicServer.DBPool = dbPool
+		network.InternalServer.DBPool = dbPool
 	}
 }
 
-func SyncFromReplicas() {
-
-}
-
 func TerminateDBConn() {
-	network.Server.DBPool.Close()
+	network.PublicServer.DBPool.Close()
+	// both servers point to the same db pool
+	// so no need to close it twice
+
+	// network.InternalServer.DBPool.Close()
 }

@@ -28,7 +28,6 @@ type GroupChatClient interface {
 	SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error)
 	SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error)
 	PrintGroupHistory(ctx context.Context, in *GroupName, opts ...grpc.CallOption) (*GroupHistory, error)
-	ClientQuit(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (GroupChat_SubscribeClient, error)
 }
 
@@ -85,15 +84,6 @@ func (c *groupChatClient) PrintGroupHistory(ctx context.Context, in *GroupName, 
 	return out, nil
 }
 
-func (c *groupChatClient) ClientQuit(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/GroupChat/ClientQuit", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *groupChatClient) Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (GroupChat_SubscribeClient, error) {
 	stream, err := c.cc.NewStream(ctx, &GroupChat_ServiceDesc.Streams[0], "/GroupChat/Subscribe", opts...)
 	if err != nil {
@@ -135,7 +125,6 @@ type GroupChatServer interface {
 	SwitchUser(context.Context, *UserState) (*Status, error)
 	SwitchGroup(context.Context, *UserState) (*GroupDetails, error)
 	PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error)
-	ClientQuit(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	Subscribe(*emptypb.Empty, GroupChat_SubscribeServer) error
 	mustEmbedUnimplementedGroupChatServer()
 }
@@ -158,9 +147,6 @@ func (UnimplementedGroupChatServer) SwitchGroup(context.Context, *UserState) (*G
 }
 func (UnimplementedGroupChatServer) PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PrintGroupHistory not implemented")
-}
-func (UnimplementedGroupChatServer) ClientQuit(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ClientQuit not implemented")
 }
 func (UnimplementedGroupChatServer) Subscribe(*emptypb.Empty, GroupChat_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
@@ -268,24 +254,6 @@ func _GroupChat_PrintGroupHistory_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GroupChat_ClientQuit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GroupChatServer).ClientQuit(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/GroupChat/ClientQuit",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GroupChatServer).ClientQuit(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _GroupChat_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(emptypb.Empty)
 	if err := stream.RecvMsg(m); err != nil {
@@ -334,16 +302,278 @@ var GroupChat_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "PrintGroupHistory",
 			Handler:    _GroupChat_PrintGroupHistory_Handler,
 		},
-		{
-			MethodName: "ClientQuit",
-			Handler:    _GroupChat_ClientQuit_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Subscribe",
 			Handler:       _GroupChat_Subscribe_Handler,
 			ServerStreams: true,
+		},
+	},
+	Metadata: "comm.proto",
+}
+
+// ReplicationClient is the client API for Replication service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ReplicationClient interface {
+	// sync online users to and from other replicas
+	SyncOnlineUsers(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncOnlineUsersClient, error)
+	// sync messages to and from other replicas
+	SyncMessages(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncMessagesClient, error)
+	// sync reactions to and from other replicas
+	SyncReactions(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncReactionsClient, error)
+}
+
+type replicationClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewReplicationClient(cc grpc.ClientConnInterface) ReplicationClient {
+	return &replicationClient{cc}
+}
+
+func (c *replicationClient) SyncOnlineUsers(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncOnlineUsersClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[0], "/Replication/SyncOnlineUsers", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &replicationSyncOnlineUsersClient{stream}
+	return x, nil
+}
+
+type Replication_SyncOnlineUsersClient interface {
+	Send(*UserState) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type replicationSyncOnlineUsersClient struct {
+	grpc.ClientStream
+}
+
+func (x *replicationSyncOnlineUsersClient) Send(m *UserState) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *replicationSyncOnlineUsersClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *replicationClient) SyncMessages(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncMessagesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[1], "/Replication/SyncMessages", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &replicationSyncMessagesClient{stream}
+	return x, nil
+}
+
+type Replication_SyncMessagesClient interface {
+	Send(*TextMessage) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type replicationSyncMessagesClient struct {
+	grpc.ClientStream
+}
+
+func (x *replicationSyncMessagesClient) Send(m *TextMessage) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *replicationSyncMessagesClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *replicationClient) SyncReactions(ctx context.Context, opts ...grpc.CallOption) (Replication_SyncReactionsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Replication_ServiceDesc.Streams[2], "/Replication/SyncReactions", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &replicationSyncReactionsClient{stream}
+	return x, nil
+}
+
+type Replication_SyncReactionsClient interface {
+	Send(*Reaction) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type replicationSyncReactionsClient struct {
+	grpc.ClientStream
+}
+
+func (x *replicationSyncReactionsClient) Send(m *Reaction) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *replicationSyncReactionsClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ReplicationServer is the server API for Replication service.
+// All implementations must embed UnimplementedReplicationServer
+// for forward compatibility
+type ReplicationServer interface {
+	// sync online users to and from other replicas
+	SyncOnlineUsers(Replication_SyncOnlineUsersServer) error
+	// sync messages to and from other replicas
+	SyncMessages(Replication_SyncMessagesServer) error
+	// sync reactions to and from other replicas
+	SyncReactions(Replication_SyncReactionsServer) error
+	mustEmbedUnimplementedReplicationServer()
+}
+
+// UnimplementedReplicationServer must be embedded to have forward compatible implementations.
+type UnimplementedReplicationServer struct {
+}
+
+func (UnimplementedReplicationServer) SyncOnlineUsers(Replication_SyncOnlineUsersServer) error {
+	return status.Errorf(codes.Unimplemented, "method SyncOnlineUsers not implemented")
+}
+func (UnimplementedReplicationServer) SyncMessages(Replication_SyncMessagesServer) error {
+	return status.Errorf(codes.Unimplemented, "method SyncMessages not implemented")
+}
+func (UnimplementedReplicationServer) SyncReactions(Replication_SyncReactionsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SyncReactions not implemented")
+}
+func (UnimplementedReplicationServer) mustEmbedUnimplementedReplicationServer() {}
+
+// UnsafeReplicationServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ReplicationServer will
+// result in compilation errors.
+type UnsafeReplicationServer interface {
+	mustEmbedUnimplementedReplicationServer()
+}
+
+func RegisterReplicationServer(s grpc.ServiceRegistrar, srv ReplicationServer) {
+	s.RegisterService(&Replication_ServiceDesc, srv)
+}
+
+func _Replication_SyncOnlineUsers_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ReplicationServer).SyncOnlineUsers(&replicationSyncOnlineUsersServer{stream})
+}
+
+type Replication_SyncOnlineUsersServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*UserState, error)
+	grpc.ServerStream
+}
+
+type replicationSyncOnlineUsersServer struct {
+	grpc.ServerStream
+}
+
+func (x *replicationSyncOnlineUsersServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *replicationSyncOnlineUsersServer) Recv() (*UserState, error) {
+	m := new(UserState)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Replication_SyncMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ReplicationServer).SyncMessages(&replicationSyncMessagesServer{stream})
+}
+
+type Replication_SyncMessagesServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*TextMessage, error)
+	grpc.ServerStream
+}
+
+type replicationSyncMessagesServer struct {
+	grpc.ServerStream
+}
+
+func (x *replicationSyncMessagesServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *replicationSyncMessagesServer) Recv() (*TextMessage, error) {
+	m := new(TextMessage)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Replication_SyncReactions_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ReplicationServer).SyncReactions(&replicationSyncReactionsServer{stream})
+}
+
+type Replication_SyncReactionsServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*Reaction, error)
+	grpc.ServerStream
+}
+
+type replicationSyncReactionsServer struct {
+	grpc.ServerStream
+}
+
+func (x *replicationSyncReactionsServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *replicationSyncReactionsServer) Recv() (*Reaction, error) {
+	m := new(Reaction)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// Replication_ServiceDesc is the grpc.ServiceDesc for Replication service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Replication_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Replication",
+	HandlerType: (*ReplicationServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SyncOnlineUsers",
+			Handler:       _Replication_SyncOnlineUsers_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "SyncMessages",
+			Handler:       _Replication_SyncMessages_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "SyncReactions",
+			Handler:       _Replication_SyncReactions_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "comm.proto",
