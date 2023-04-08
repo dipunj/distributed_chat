@@ -22,6 +22,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 			sender_name,
 			group_name,
 			content,
+			vector_timestamp,
 			client_sent_at,
 			server_received_at
 		) VALUES (
@@ -32,6 +33,8 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	server_received_at := time.Now()
 	var row pb.TextMessage
 
+	var vector_ts_str = CurrentTimestamp.Increment(0).ToDbFormat()
+
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
@@ -41,6 +44,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 		msg.SenderName,
 		msg.GroupName,
 		msg.Content,
+		vector_ts_str,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
 	}
@@ -50,7 +54,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	err := s.DBPool.QueryRow(context.Background(),
 		new_message_query,
 		params...,
-	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt)
+	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &vector_ts_str, &clientSentAt, &serverReceivedAt)
 
 	if err == nil {
 		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
@@ -124,6 +128,8 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 			$1, $2, $3, $4, $5, $6, $7, $8
 		) 
 	`
+
+	log.Info("[!!!!!!!]")
 
 	server_received_at := time.Now()
 
