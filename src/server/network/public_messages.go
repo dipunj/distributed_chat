@@ -26,14 +26,16 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 			client_sent_at,
 			server_received_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7
+			$1, $2, $3, $4, $5, $6, $7, $8
 		) RETURNING 
-			id, sender_name, group_name, content, client_sent_at, server_received_at
+			id, sender_name, group_name, content, vector_timestamp, client_sent_at, server_received_at
 	`
 	server_received_at := time.Now()
 	var row pb.TextMessage
 
 	var vector_ts_str = CurrentTimestamp.Increment(0).ToDbFormat()
+
+	log.Println(vector_ts_str)
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
