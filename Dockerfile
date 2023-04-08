@@ -14,10 +14,15 @@ RUN go mod download
 # Then copy the entire project to the container
 COPY ./src .
 
-# Build the client and server binaries
+# Build client-server RPCs
 WORKDIR /app/pb
 RUN protoc --experimental_allow_proto3_optional --go_out=./ --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --go-grpc_out=./ comm.proto
 
+# Build server-server RPCs
+WORKDIR /app/server/pb/
+RUN protoc --experimental_allow_proto3_optional --go_out=./ --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --go-grpc_out=./ --proto_path=./../../pb/ --proto_path=./ replication.proto
+
+# Build the client and server binaries
 WORKDIR /app
 RUN go build -o ./bin/client ./client 
 RUN go build -o ./bin/server ./server 
