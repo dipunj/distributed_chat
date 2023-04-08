@@ -123,15 +123,16 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 			sender_name,
 			group_name,
 			content,
+			vector_timestamp,
 			parent_msg_id,
 			client_sent_at,
 			server_received_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) 
 	`
 
-	log.Info("[!!!!!!!]")
+	vector_ts_str := CurrentTimestamp.Increment(0).ToDbFormat()
 
 	server_received_at := time.Now()
 
@@ -141,6 +142,7 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 		msg.SenderName,
 		msg.GroupName,
 		"like",
+		vector_ts_str,
 		msg.OnMessageId,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
