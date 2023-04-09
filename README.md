@@ -22,10 +22,9 @@ or alternatively you can run
 source build_all.sh
 ```
 
-The `docker-compose.yml` file creates a docker network called `chat`, on which 4 containers run:
-- 1 server
-- 1 database
-- 2 clients
+The `docker-compose.yml` file creates a docker network called `cs2510`, on which 8 containers run:
+- 1 server_i
+- database_i
 
 To start the containers run
 

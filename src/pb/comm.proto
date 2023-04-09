@@ -99,9 +99,9 @@ message ReactionWithClock {
 // this service is used between replicas
 service Internal {
   // sync online users to and from other replicas
-  rpc SyncOnlineUsers(UserStateWithClock) returns (google.protobuf.Empty) {}
+  rpc SendOnlineUsers(UserStateWithClock) returns (google.protobuf.Empty) {}
   // sync messages to and from other replicas
-  rpc SyncMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
+  rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
   // sync reactions to and from other replicas
-  rpc SyncReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
+  rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
 }

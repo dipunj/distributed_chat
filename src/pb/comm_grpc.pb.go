@@ -354,11 +354,11 @@ var Public_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalClient interface {
 	// sync online users to and from other replicas
-	SyncOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync messages to and from other replicas
-	SyncMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
-	SyncReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type internalClient struct {
@@ -369,27 +369,27 @@ func NewInternalClient(cc grpc.ClientConnInterface) InternalClient {
 	return &internalClient{cc}
 }
 
-func (c *internalClient) SyncOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *internalClient) SendOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SyncOnlineUsers", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Internal/SendOnlineUsers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *internalClient) SyncMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *internalClient) SendMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SyncMessages", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Internal/SendMessages", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *internalClient) SyncReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *internalClient) SendReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SyncReactions", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Internal/SendReactions", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -401,11 +401,11 @@ func (c *internalClient) SyncReactions(ctx context.Context, in *ReactionWithCloc
 // for forward compatibility
 type InternalServer interface {
 	// sync online users to and from other replicas
-	SyncOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error)
+	SendOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error)
 	// sync messages to and from other replicas
-	SyncMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
+	SendMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
-	SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
+	SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
 	mustEmbedUnimplementedInternalServer()
 }
 
@@ -413,14 +413,14 @@ type InternalServer interface {
 type UnimplementedInternalServer struct {
 }
 
-func (UnimplementedInternalServer) SyncOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SyncOnlineUsers not implemented")
+func (UnimplementedInternalServer) SendOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendOnlineUsers not implemented")
 }
-func (UnimplementedInternalServer) SyncMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SyncMessages not implemented")
+func (UnimplementedInternalServer) SendMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessages not implemented")
 }
-func (UnimplementedInternalServer) SyncReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SyncReactions not implemented")
+func (UnimplementedInternalServer) SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendReactions not implemented")
 }
 func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
@@ -435,56 +435,56 @@ func RegisterInternalServer(s grpc.ServiceRegistrar, srv InternalServer) {
 	s.RegisterService(&Internal_ServiceDesc, srv)
 }
 
-func _Internal_SyncOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Internal_SendOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserStateWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).SyncOnlineUsers(ctx, in)
+		return srv.(InternalServer).SendOnlineUsers(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Internal/SyncOnlineUsers",
+		FullMethod: "/Internal/SendOnlineUsers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SyncOnlineUsers(ctx, req.(*UserStateWithClock))
+		return srv.(InternalServer).SendOnlineUsers(ctx, req.(*UserStateWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Internal_SyncMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Internal_SendMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TextMessageWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).SyncMessages(ctx, in)
+		return srv.(InternalServer).SendMessages(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Internal/SyncMessages",
+		FullMethod: "/Internal/SendMessages",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SyncMessages(ctx, req.(*TextMessageWithClock))
+		return srv.(InternalServer).SendMessages(ctx, req.(*TextMessageWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Internal_SyncReactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Internal_SendReactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReactionWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).SyncReactions(ctx, in)
+		return srv.(InternalServer).SendReactions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Internal/SyncReactions",
+		FullMethod: "/Internal/SendReactions",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SyncReactions(ctx, req.(*ReactionWithClock))
+		return srv.(InternalServer).SendReactions(ctx, req.(*ReactionWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -497,16 +497,16 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SyncOnlineUsers",
-			Handler:    _Internal_SyncOnlineUsers_Handler,
+			MethodName: "SendOnlineUsers",
+			Handler:    _Internal_SendOnlineUsers_Handler,
 		},
 		{
-			MethodName: "SyncMessages",
-			Handler:    _Internal_SyncMessages_Handler,
+			MethodName: "SendMessages",
+			Handler:    _Internal_SendMessages_Handler,
 		},
 		{
-			MethodName: "SyncReactions",
-			Handler:    _Internal_SyncReactions_Handler,
+			MethodName: "SendReactions",
+			Handler:    _Internal_SendReactions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
