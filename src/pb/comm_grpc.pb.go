@@ -29,6 +29,7 @@ type PublicClient interface {
 	SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error)
 	PrintGroupHistory(ctx context.Context, in *GroupName, opts ...grpc.CallOption) (*GroupHistory, error)
 	Subscribe(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Public_SubscribeClient, error)
+	VisibleReplicas(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VisibilityResponse, error)
 }
 
 type publicClient struct {
@@ -116,6 +117,15 @@ func (x *publicSubscribeClient) Recv() (*GroupDetails, error) {
 	return m, nil
 }
 
+func (c *publicClient) VisibleReplicas(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VisibilityResponse, error) {
+	out := new(VisibilityResponse)
+	err := c.cc.Invoke(ctx, "/Public/VisibleReplicas", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PublicServer is the server API for Public service.
 // All implementations must embed UnimplementedPublicServer
 // for forward compatibility
@@ -126,6 +136,7 @@ type PublicServer interface {
 	SwitchGroup(context.Context, *UserState) (*GroupDetails, error)
 	PrintGroupHistory(context.Context, *GroupName) (*GroupHistory, error)
 	Subscribe(*emptypb.Empty, Public_SubscribeServer) error
+	VisibleReplicas(context.Context, *emptypb.Empty) (*VisibilityResponse, error)
 	mustEmbedUnimplementedPublicServer()
 }
 
@@ -150,6 +161,9 @@ func (UnimplementedPublicServer) PrintGroupHistory(context.Context, *GroupName) 
 }
 func (UnimplementedPublicServer) Subscribe(*emptypb.Empty, Public_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedPublicServer) VisibleReplicas(context.Context, *emptypb.Empty) (*VisibilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VisibleReplicas not implemented")
 }
 func (UnimplementedPublicServer) mustEmbedUnimplementedPublicServer() {}
 
@@ -275,6 +289,24 @@ func (x *publicSubscribeServer) Send(m *GroupDetails) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Public_VisibleReplicas_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublicServer).VisibleReplicas(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Public/VisibleReplicas",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublicServer).VisibleReplicas(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Public_ServiceDesc is the grpc.ServiceDesc for Public service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -301,6 +333,10 @@ var Public_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PrintGroupHistory",
 			Handler:    _Public_PrintGroupHistory_Handler,
+		},
+		{
+			MethodName: "VisibleReplicas",
+			Handler:    _Public_VisibleReplicas_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

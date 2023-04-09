@@ -10,6 +10,7 @@ import (
 	pb "chat/pb"
 
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -118,6 +119,35 @@ func RequestGroupSwitchTo(new_group_name string) bool {
 		log.Error("Couldn't switch group")
 		return false
 	}
+}
+
+func PrintServerView() {
+	response, err := state.ChatClient.VisibleReplicas(context.Background(), &emptypb.Empty{})
+
+	if err == nil {
+		state.RenderMu.Lock()
+		// print reply
+		fmt.Printf("\tServer ID. [IP4 addr] [Status]\n")
+		for _, replica := range response.Replicas {
+			id := replica.Id
+			ip_addr := replica.IpAddress
+			status := replica.IsOnline
+
+			status_text := ""
+			if status {
+				status_text = "online"
+			} else {
+				status_text = "offline"
+			}
+
+			fmt.Printf("\t(%d) %s [%s]\n", id, ip_addr, status_text)
+		}
+		state.RenderMu.Unlock()
+
+	} else {
+		log.Error("Couldn't get server view")
+	}
+
 }
 
 func GracefulDisconnect(reason string) {

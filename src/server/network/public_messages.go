@@ -312,3 +312,16 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 
 	return <-rs.error
 }
+
+func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Empty) (*pb.VisibilityResponse, error) {
+	response := &pb.VisibilityResponse{}
+	for k, replica := range ReplicaState {
+		response.Replicas = append(response.Replicas, &pb.ReplicaDetail{
+			Id:        int32(k),
+			IsOnline:  <-replica.IsOnline,
+			IpAddress: replica.PublicIpAddress,
+		})
+	}
+
+	return response, nil
+}

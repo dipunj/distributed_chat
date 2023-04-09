@@ -28,14 +28,18 @@ func getPrompt() string {
 // returns command, argument, [error]
 func parseUserInput(trimmedInput string) (string, string, error) {
 
-	if trimmedInput == HELP || trimmedInput == PRINT_ALL || trimmedInput == QUIT || trimmedInput == CLEAR_SCREEN {
+	if trimmedInput == HELP ||
+		trimmedInput == PRINT_ALL ||
+		trimmedInput == QUIT ||
+		trimmedInput == CLEAR_SCREEN ||
+		trimmedInput == SERVER_VIEW {
 		return trimmedInput, "", nil
 	}
 
 	command := trimmedInput[0:1]
 
 	if len(trimmedInput) < 3 {
-		return "", "", errors.New("Command " + command + "takes an argument. Enter h for help")
+		return "", "", errors.New("Command " + command + " takes an argument. Enter h for help")
 	}
 
 	space, arg := trimmedInput[1:2], trimmedInput[2:]
@@ -253,8 +257,12 @@ func commandController(command, arg string) {
 		}
 	case PRINT_ALL:
 		{
-			// TODO
 			network.PrintGroupHistory()
+			return
+		}
+	case SERVER_VIEW:
+		{
+			network.PrintServerView()
 			return
 		}
 	}

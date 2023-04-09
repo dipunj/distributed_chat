@@ -39,6 +39,14 @@ message Status { bool status = 1; }
 message GroupName { string group_name = 1; }
 message GroupHistory { repeated TextMessage messages = 1; }
 
+message ReplicaDetail {
+  int32 id = 1;
+  string ip_address = 2;
+  bool is_online = 3;
+}
+
+message VisibilityResponse { repeated ReplicaDetail replicas = 1; }
+
 // this service is used between clients and a server
 service Public {
 
@@ -51,6 +59,7 @@ service Public {
   rpc PrintGroupHistory(GroupName) returns (GroupHistory) {}
 
   rpc Subscribe(google.protobuf.Empty) returns (stream GroupDetails) {}
+  rpc VisibleReplicas(google.protobuf.Empty) returns (VisibilityResponse) {}
 }
 
 // the following types are used for replication

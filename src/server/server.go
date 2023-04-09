@@ -8,18 +8,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// changing this value will change the number of replicas
+// the docker-compose file also needs to be changed
+const REPLICA_COUNT = 5
+
 // I think this is dead code
 const MAX_CHAR_PER_LINE = 80
-
-const (
-	// listen on all interfaces
-	DEFAULT_INTERFACE     = "0.0.0.0"
-	DEFAULT_PUBLIC_PORT   = "12000"
-	DEFAULT_INTERNAL_PORT = "11000"
-
-	PUBLIC_ADDRESS   = DEFAULT_INTERFACE + ":" + DEFAULT_PUBLIC_PORT
-	INTERNAL_ADDRESS = DEFAULT_INTERFACE + ":" + DEFAULT_INTERNAL_PORT
-)
 
 // this function is called before main() to parse the command line arguments
 // and set the server id and the possible replica_ids
@@ -30,18 +24,13 @@ func UpdateServerID() int {
 
 	if *server_id == -1 {
 		log.Fatalln("Server ID not provided")
-	} else if *server_id < 1 || *server_id > network.REPLICA_COUNT {
+	} else if *server_id < 1 || *server_id > REPLICA_COUNT {
 		log.Fatalln("Server ID out of range")
 	}
 
 	network.InternalServer.SelfID = *server_id
+	network.InitializeReplicas(REPLICA_COUNT)
 
-	// populate replica_ids array with ids from 1 to replica_count, except selfID
-	for i := 1; i <= network.REPLICA_COUNT; i++ {
-		if i != *server_id {
-			network.ReplicaIds = append(network.ReplicaIds, i)
-		}
-	}
 	return *server_id
 }
 
@@ -52,12 +41,11 @@ func main() {
 
 	db.ConnectToDB()
 
-	network.ServePublicRequests(PUBLIC_ADDRESS)
+	network.ServePublicRequests()
 
-	network.ServeInternalRequests(INTERNAL_ADDRESS)
+	network.ServeInternalRequests()
 
-	// one client per replica
-	network.StartInternalClients()
+	network.ConnectToReplicas()
 
 	db.TerminateDBConn()
 }

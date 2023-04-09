@@ -9,6 +9,8 @@ import (
 )
 
 type ResponseStream struct {
+	// denotes the id of the server that the client is currently connected to
+	server_id  int
 	stream     pb.Public_SubscribeServer
 	client_id  string
 	user_name  string
@@ -27,7 +29,6 @@ type PublicServerType struct {
 
 	// this keeps track of users that are online replicas
 	// a map from replica_id to the user object
-	ReplicaSubscribers map[string]*ReplicaUser
 
 	GrpcServer *grpc.Server
 	Listener   net.Listener

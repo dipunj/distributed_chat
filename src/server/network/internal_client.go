@@ -5,58 +5,79 @@ package network
 import (
 	"chat/pb"
 	"context"
-	"math"
-	"strconv"
+	"sync"
 	"time"
 
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 const REPLICA_CONNECTION_TIMEOUT = 5 * time.Second
 
-func ConnectToReplica(ip_address string, replicaID int) {
+var ReplicaConnectionWaitGroup = &sync.WaitGroup{}
 
-	log.Info("Connecting to replica at ", ip_address)
+func DialAndPing(replicaId int) {
+	// this method will be called by a goroutine
+	// this method will ping the replica every 1 second
+	// if the replica is online, it will set the replica state to online
+	// if the replica is offline, it will set the replica state to offline and call grpc dial every 1 second
 
-	ctx, cancelContext := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
+	defer ReplicaConnectionWaitGroup.Done()
+	state := ReplicaState[replicaId]
+	ip_address := state.InternalIpAddress
 
-	conn, err := grpc.DialContext(
-		ctx,
-		ip_address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.WithUnaryInterceptor(
-			grpc_retry.UnaryClientInterceptor(
-				grpc_retry.WithMax(math.MaxUint64),
-				grpc_retry.WithBackoff(grpc_retry.BackoffLinear(time.Second)),
-			),
-		),
-	)
+	for {
+		ctx, _ := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
 
-	defer cancelContext()
+		conn, err := grpc.DialContext(
+			ctx,
+			ip_address,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                5 * time.Second,
+				Timeout:             5 * time.Second,
+				PermitWithoutStream: true,
+			}),
+		)
 
-	if err != nil {
-		// raise error
-		log.Error("Unable to dial to replica", replicaID, ip_address, "because of:", err)
-		return
+		if err == nil {
+			// create a new client
+			state.Client = pb.NewInternalClient(conn)
+			state.IsOnline <- true
+
+			conn_state := conn.GetState()
+
+			// the following call is blocking
+			conn.WaitForStateChange(context.Background(), conn_state)
+
+			// Check if the connection is still alive
+			if conn_state == connectivity.TransientFailure || conn_state == connectivity.Shutdown {
+				log.Error("Connection to replica", replicaId, " at ", ip_address, " is closed")
+			}
+		} else {
+			log.Error("Dial failed: Replica ID ", replicaId, " at ", ip_address, " with error ", err)
+		}
+
+		// retry after 1 second
+		state.IsOnline <- false
+		time.Sleep(1 * time.Second)
 	}
-
-	InternalClients[replicaID] = pb.NewInternalClient(conn)
-
-	log.Info("Successfully connected to replica at ", ip_address)
 }
 
-func GetReplicaAddressFromID(replicaID int) string {
-	ip_prefix := "0.0.0.0"
-	return ip_prefix + strconv.Itoa(replicaID)
-}
+func ConnectToReplicas() {
+	// this method will start REPLICA_COUNT - 1 goroutines to connect to each of the replicas
 
-func StartInternalClients() {
-	for _, replicaID := range ReplicaIds {
-		replicaAddress := GetReplicaAddressFromID(replicaID)
-		ConnectToReplica(replicaAddress, replicaID)
+	// each go routine will run indefinitely
+	// the go routine will ping the replica to check if it is online
+	// if the replica is online, it will set the replica state to online
+	// if the replica is offline, it will set the replica state to offline and call grpc dial every 1 second
+
+	for _, replicaId := range ReplicaIds {
+		ReplicaConnectionWaitGroup.Add(1)
+		go DialAndPing(replicaId)
 	}
+
 }
