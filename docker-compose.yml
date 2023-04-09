@@ -14,7 +14,8 @@ services:
         condition: service_healthy
     command: [ "-id=1" ]
     networks:
-      - cs2510
+      cs2510:
+        - ipv4_address: 172.30.100.101
 
   db_1:
     image: chat-db:latest
@@ -49,7 +50,8 @@ services:
         condition: service_healthy
     command: [ "-id=2" ]
     networks:
-      - cs2510
+      cs2510:
+        - ipv4_address: 172.30.100.102
 
   db_2:
     image: chat-db:latest
@@ -84,7 +86,8 @@ services:
         condition: service_healthy
     command: [ "-id=3" ]
     networks:
-      - cs2510
+      cs2510:
+        - ipv4_address: 172.30.100.103
 
   db_3:
     image: chat-db:latest
@@ -139,7 +142,8 @@ services:
       interval: 1s
       retries: 15
     networks:
-      - cs2510
+      cs2510:
+        - ipv4_address: 172.30.100.104
 
   server_5:
     image: chat-server:latest
@@ -154,7 +158,8 @@ services:
         condition: service_healthy
     command: [ "-id=5" ]
     networks:
-      - cs2510
+      cs2510:
+        - ipv4_address: 172.30.100.105
 
   db_5:
     image: chat-db:latest
@@ -199,7 +204,13 @@ services:
 
 networks:
   cs2510:
-    name: chat
+    name: cs2510
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.100.0/24
+          ip_range: 172.30.100.101/29
+          gateway: 172.30.100.1
 
 volumes:
   db_data_1:
