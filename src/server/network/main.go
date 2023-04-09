@@ -39,8 +39,7 @@ func ServePublicRequests(ip_address string) {
 }
 
 // we server requests to replicas on a different port
-// to keep the client-server and replica-replica
-// communication separate
+// This keeps the client-server and replica-replica communication separate
 func ServeInternalRequests(ip_address string) {
 	log.Info("Starting internal (replication) service at", ip_address)
 

@@ -4,6 +4,8 @@ import (
 	"chat/server/db"
 	"chat/server/network"
 	"flag"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // I think this is dead code
@@ -27,9 +29,9 @@ func UpdateServerID() int {
 	flag.Parse()
 
 	if *server_id == -1 {
-		panic("Server ID not provided")
+		log.Fatalln("Server ID not provided")
 	} else if *server_id < 1 || *server_id > network.REPLICA_COUNT {
-		panic("Server ID out of range")
+		log.Fatalln("Server ID out of range")
 	}
 
 	network.InternalServer.SelfID = *server_id
@@ -45,7 +47,8 @@ func UpdateServerID() int {
 
 func main() {
 
-	UpdateServerID()
+	id := UpdateServerID()
+	log.Info("Server ID: ", id)
 
 	db.ConnectToDB()
 
