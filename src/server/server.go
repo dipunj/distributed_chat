@@ -4,6 +4,7 @@ import (
 	"chat/server/db"
 	"chat/server/network"
 	"flag"
+	"fmt"
 )
 
 // I think this is dead code
@@ -24,15 +25,16 @@ func GetServerID() int {
 }
 
 func main() {
+	network.ReplicaId = GetServerID()
 
-	server_id := GetServerID()
+	db_host := fmt.Sprintf("chat_db%d", network.ReplicaId)
 
 	client_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_PUBLIC_PORT
 	replication_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_INTERNAL_PORT
 
-	db.ConnectToDB()
+	db.ConnectToDB(db_host)
 	defer db.TerminateDBConn()
 
-	go network.ServerRequestsToReplicas(replication_serve_address, server_id)
+	go network.ServerRequestsToReplicas(replication_serve_address, network.ReplicaId)
 	network.ServeRequestsToClients(client_serve_address)
 }

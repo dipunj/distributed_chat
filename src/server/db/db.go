@@ -15,14 +15,17 @@ const (
 	DB_NAME  = "postgres"
 
 	// TODO change this to a "chat_db" when running from a container
-	HOST = "localhost"
+	//	HOST = "localhost"
+	//	HOST = "chat_db"
 	PORT = 5432
 )
 
 // urlExample := "postgres://username:password@localhost:5432/database_name"
-var db_url string = fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)
+//var db_url string = fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)
 
-func ConnectToDB() {
+func ConnectToDB(host string) {
+	db_url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, host, PORT, DB_NAME)
+
 	ctx := context.Background()
 	dbPool, err := pgxpool.New(ctx, db_url)
 
