@@ -115,8 +115,11 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	<-done
 }
 
-func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interface{}, error) {
-	var add_reaction_query string = `
+func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
+
+	// This works because (message_type, parent_msg_id, sender_name) is the
+	// same as the unique_reactions index?
+	var update_reaction_query string = `
 		INSERT INTO messages (
 			message_type,
 			client_id,
@@ -130,63 +133,9 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) 
+		ON CONFLICT (message_type, parent_msg_id, sender_name)
+			DO UPDATE SET content = $5
 	`
-
-	vector_ts_str := CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
-
-	server_received_at := time.Now()
-
-	params := []interface{}{
-		"reaction",
-		client_id,
-		msg.SenderName,
-		msg.GroupName,
-		"like",
-		vector_ts_str,
-		msg.OnMessageId,
-		msg.ClientSentAt.AsTime(),
-		server_received_at,
-	}
-
-	var row interface{}
-	err := s.DBPool.QueryRow(context.Background(),
-		add_reaction_query,
-		params...,
-	).Scan(&row)
-
-	return row, err
-}
-
-func (s *PublicServerType) removeLike(msg *pb.Reaction) (interface{}, error) {
-
-	var remove_reaction_query string = `
-			DELETE FROM messages
-			WHERE 
-				message_type = $1
-				and parent_msg_id = $2
-				and sender_name = $3 
-				and group_name = $4
-				and content = $5
-			`
-
-	params := []interface{}{
-		"reaction",
-		msg.OnMessageId,
-		msg.SenderName,
-		msg.GroupName,
-		"like",
-	}
-
-	var row interface{}
-	err := s.DBPool.QueryRow(context.Background(),
-		remove_reaction_query,
-		params...,
-	).Scan(&row)
-
-	return row, err
-}
-
-func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -201,12 +150,27 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		msg.OnMessageId,
 	)
 
-	var err error
-	if msg.Content == "like" {
-		_, err = s.addLike(client_id, msg)
-	} else {
-		_, err = s.removeLike(msg)
+	vector_ts_str := CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+
+	server_received_at := time.Now()
+
+	params := []interface{}{
+		"reaction",
+		client_id,
+		msg.SenderName,
+		msg.GroupName,
+		msg.Content, // either "like" or "unlike"
+		vector_ts_str,
+		msg.OnMessageId,
+		msg.ClientSentAt.AsTime(),
+		server_received_at,
 	}
+
+	var row interface{}
+	err := s.DBPool.QueryRow(context.Background(),
+		update_reaction_query,
+		params...,
+	).Scan(&row)
 
 	if err != nil && err != pgx.ErrNoRows {
 		log.Error(err)
