@@ -4,27 +4,27 @@ import (
 	"chat/server/network"
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
+var (
 	USERNAME = "postgres"
 	PASSWORD = "postgres"
 	DB_NAME  = "postgres"
 
 	// TODO change this to a "chat_db" when running from a container
-	//	HOST = "localhost"
-	//	HOST = "chat_db"
-	PORT = 5432
+	HOST_PREFIX = "chat_db"
+	PORT        = 5432
 )
 
-// urlExample := "postgres://username:password@localhost:5432/database_name"
-//var db_url string = fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)
+func ConnectToDB() {
+	HOST := HOST_PREFIX + "_" + strconv.Itoa(network.InternalServer.SelfID)
 
-func ConnectToDB(host string) {
-	db_url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, host, PORT, DB_NAME)
+	// urlExample := "postgres://username:password@localhost:5432/database_name"
+	db_url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)
 
 	ctx := context.Background()
 	dbPool, err := pgxpool.New(ctx, db_url)

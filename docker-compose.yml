@@ -1,25 +1,25 @@
 version: "3.9"
 
 services:
-  server:
+  server_1:
     image: chat-server:latest
-    container_name: chat_server
+    container_name: chat_server_1
     restart: on-failure:5
     build:
       context: .
       dockerfile: ./Dockerfile
       target: server
     depends_on:
-      db:
+      db_1:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    command: [ "-id=1" ]
     networks:
-      - chat_network
+      cs2510:
+        ipv4_address: 172.30.100.101
 
-  db:
+  db_1:
     image: chat-db:latest
-    container_name: chat_db
+    container_name: chat_db_1
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -28,16 +28,163 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
-    ports:
-      - "5432:5000"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_1:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 1s
       retries: 15
     networks:
-      - chat_network
+      cs2510:
+        ipv4_address: 172.30.100.201
+
+  server_2:
+    image: chat-server:latest
+    container_name: chat_server_2
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db_2:
+        condition: service_healthy
+    command: [ "-id=2" ]
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.102
+
+  db_2:
+    image: chat-db:latest
+    container_name: chat_db_2
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data_2:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.202
+
+  server_3:
+    image: chat-server:latest
+    container_name: chat_server_3
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db_3:
+        condition: service_healthy
+    command: [ "-id=3" ]
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.103
+
+  db_3:
+    image: chat-db:latest
+    container_name: chat_db_3
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data_3:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.203
+
+  server_4:
+    image: chat-server:latest
+    container_name: chat_server_4
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db_4:
+        condition: service_healthy
+    command: [ "-id=4" ]
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.104
+
+  db_4:
+    image: chat-db:latest
+    container_name: chat_db_4
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data_4:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.204
+
+  server_5:
+    image: chat-server:latest
+    container_name: chat_server_5
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db_5:
+        condition: service_healthy
+    command: [ "-id=5" ]
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.105
+
+  db_5:
+    image: chat-db:latest
+    container_name: chat_db_5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data_5:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.205
 
   client1:
     image: chat-client:latest
@@ -46,26 +193,32 @@ services:
       dockerfile: ./Dockerfile
       target: client
     container_name: chat_client1
-    depends_on:
-      - server
     networks:
-      - chat_network
-
-  client2:
-    image: chat-client:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      target: client
-    container_name: chat_client2
-    depends_on:
-      - server
-    networks:
-      - chat_network
+      - cs2510
+  # client2:
+  #   image: chat-client:latest
+  #   build:
+  #     context: .
+  #     dockerfile: ./Dockerfile
+  #     target: client
+  #   container_name: chat_client2
+  #   depends_on:
+  #     - server
+  #   networks:
+  #     - cs2510
 
 networks:
-  chat_network:
-    name: chat
+  cs2510:
+    name: cs2510
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.100.0/24
+          gateway: 172.30.100.1
 
 volumes:
-  db_data:
+  db_data_1:
+  db_data_2:
+  db_data_3:
+  db_data_4:
+  db_data_5:

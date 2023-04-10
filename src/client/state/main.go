@@ -10,7 +10,7 @@ import (
 
 // represents the tcp connection
 var RpcConn *grpc.ClientConn
-var ChatClient pb.GroupChatClient
+var ChatClient pb.PublicClient
 
 var Current_user string
 var Current_group string

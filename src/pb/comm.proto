@@ -36,13 +36,19 @@ message UserState {
 }
 
 message Status { bool status = 1; }
-
 message GroupName { string group_name = 1; }
-
 message GroupHistory { repeated TextMessage messages = 1; }
 
+message ReplicaDetail {
+  int32 id = 1;
+  string ip_address = 2;
+  bool is_online = 3;
+}
+
+message VisibilityResponse { repeated ReplicaDetail replicas = 1; }
+
 // this service is used between clients and a server
-service GroupChat {
+service Public {
 
   rpc CreateNewMessage(TextMessage) returns (Status) {}
   rpc UpdateReaction(Reaction) returns (Status) {}
@@ -53,14 +59,49 @@ service GroupChat {
   rpc PrintGroupHistory(GroupName) returns (GroupHistory) {}
 
   rpc Subscribe(google.protobuf.Empty) returns (stream GroupDetails) {}
+  rpc VisibleReplicas(google.protobuf.Empty) returns (VisibilityResponse) {}
+}
+
+// the following types are used for replication
+// they are the same as the above types, but with an additional field
+// called clock, which is a vector clock
+// the clock length is the number of replicas
+// clock[i] is the logical time of replica i for the message. 0-based index.
+
+message UserStateWithClock {
+  optional string user_name = 16;
+  optional string group_name = 17;
+  repeated int64 clock = 19;
+}
+
+message TextMessageWithClock {
+  optional int64 id = 16;
+  string sender_name = 2;
+  string group_name = 3;
+  string content = 5;
+  int64 likedBy = 6;
+  optional google.protobuf.Timestamp clientSentAt = 17;
+  optional google.protobuf.Timestamp serverReceivedAt = 18;
+  repeated int64 clock = 19;
+}
+
+message ReactionWithClock {
+  optional int64 id = 16;
+  string sender_name = 2;
+  string group_name = 3;
+  int64 on_message_id = 4; // the message id on which the reaction is done
+  string content = 5;      // "like" | "unlike"
+  optional google.protobuf.Timestamp clientSentAt = 17;
+  optional google.protobuf.Timestamp serverReceivedAt = 18;
+  repeated int64 clock = 19;
 }
 
 // this service is used between replicas
-service Replication {
+service Internal {
   // sync online users to and from other replicas
-  rpc SyncOnlineUsers(stream UserState) returns (google.protobuf.Empty) {}
+  rpc SendOnlineUsers(UserStateWithClock) returns (google.protobuf.Empty) {}
   // sync messages to and from other replicas
-  rpc SyncMessages(stream TextMessage) returns (google.protobuf.Empty) {}
+  rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
   // sync reactions to and from other replicas
-  rpc SyncReactions(stream Reaction) returns (google.protobuf.Empty) {}
+  rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
 }

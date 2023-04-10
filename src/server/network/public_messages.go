@@ -107,6 +107,8 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 		}
 	}
 
+	// make a broadcast to all the replicas
+
 	go func() {
 		wait.Wait()
 		close(done)
@@ -254,7 +256,7 @@ func (s *PublicServerType) PrintGroupHistory(ctx context.Context, msg *pb.GroupN
 	return &pb.GroupHistory{Messages: recent_messages}, err
 }
 
-func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.GroupChat_SubscribeServer) error {
+func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_SubscribeServer) error {
 	ctx := stream.Context()
 	client, _ := peer.FromContext(ctx)
 	clientID := client.Addr.String()
@@ -283,4 +285,17 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.GroupChat_Subsc
 	}()
 
 	return <-rs.error
+}
+
+func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Empty) (*pb.VisibilityResponse, error) {
+	response := &pb.VisibilityResponse{}
+	for k, replica := range ReplicaState {
+		response.Replicas = append(response.Replicas, &pb.ReplicaDetail{
+			Id:        int32(k),
+			IsOnline:  <-replica.IsOnline,
+			IpAddress: replica.PublicIpAddress,
+		})
+	}
+
+	return response, nil
 }
