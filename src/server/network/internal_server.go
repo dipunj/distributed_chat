@@ -5,8 +5,32 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+// we server requests to replicas on a different port
+// This keeps the client-server and replica-replica communication separate
+func ServeInternalRequests() {
+
+	log.Info("[ServeInternalRequests] Starting internal (replication) service at", INTERNAL_ADDRESS)
+
+	InternalServer.GrpcServer = grpc.NewServer()
+
+	//	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServer)
+
+	// Serve() spawns a new goroutine under the hood for each new request
+	l := getTCPListener(INTERNAL_ADDRESS)
+	err := InternalServer.GrpcServer.Serve(l)
+
+	if err != nil {
+		log.Fatalf("[ServeInternalRequests]: Error while starting the gRPC server on the %s listen address %v", l, err.Error())
+	} else {
+		log.Info("[ServeInternalRequests]: Internal Server started")
+	}
+}
 
 func (s *InternalServerType) SubscribeToHeartBeat(_ *emptypb.Empty, stream pb.Internal_SubscribeToHeartBeatServer) error {
 	err := make(chan error)

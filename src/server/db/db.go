@@ -1,7 +1,6 @@
 package db
 
 import (
-	"chat/server/network"
 	"context"
 	"fmt"
 	"strconv"
@@ -20,8 +19,8 @@ var (
 	PORT        = 5432
 )
 
-func ConnectToDB() {
-	HOST := HOST_PREFIX + "_" + strconv.Itoa(network.SelfID)
+func ConnectToDB(selfID int) {
+	HOST := HOST_PREFIX + "_" + strconv.Itoa(selfID)
 
 	// urlExample := "postgres://username:password@localhost:5432/database_name"
 	db_url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)
@@ -38,13 +37,12 @@ func ConnectToDB() {
 		log.Fatal("Failed to establish connection with DB", ping_err)
 	} else {
 		log.Info("Database connection established")
-		network.PublicServer.DBPool = dbPool
-		network.InternalServer.DBPool = dbPool
+		DBPool = dbPool
 	}
 }
 
 func TerminateDBConn() {
-	network.PublicServer.DBPool.Close()
+	DBPool.Close()
 	// both servers point to the same db pool
 	// so no need to close it twice
 

@@ -48,7 +48,7 @@ func main() {
 
 	InitializeServerID()
 
-	db.ConnectToDB()
+	db.ConnectToDB(network.SelfID)
 
 	go network.ServeInternalRequests()
 

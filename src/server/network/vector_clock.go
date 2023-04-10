@@ -1,6 +1,7 @@
 package network
 
 import (
+	"chat/server/db"
 	"context"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ func LoadSavedTimestamp() VectorClock {
 
 	var timestamp_str = "0,0,0,0,0"
 
-	PublicServer.DBPool.QueryRow(
+	db.DBPool.QueryRow(
 		context.Background(), most_recent_query,
 	).Scan(&timestamp_str)
 
