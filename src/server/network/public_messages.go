@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage, ts VectorClock) error {
 
 	var new_message_query string = `
 		INSERT INTO messages (
@@ -54,16 +55,24 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 
 	var clientSentAt time.Time
 	var serverReceivedAt time.Time
-	err := s.DBPool.QueryRow(context.Background(),
+	err := db.QueryRow(context.Background(),
 		new_message_query,
 		params...,
 	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt, &vector_ts)
 
-	if err == nil {
-		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
-		row.ClientSentAt = timestamppb.New(clientSentAt)
+	return err
+}
 
-		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, " and with clock ", vector_ts)
+func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+	client, _ := peer.FromContext(ctx)
+	client_id := client.Addr.String()
+
+	err := insertNewMessage(s.DBPool, ctx, msg, CurrentTimestamp)
+
+	if err == nil {
+		//		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
+		//		row.ClientSentAt = timestamppb.New(clientSentAt)
+		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName)
 
 		defer s.broadcastUpdates(msg.GroupName)
 
@@ -82,6 +91,7 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	online_users := s.getOnlineUsers(group_name)
 	recent_messages := s.getRecentMessages(group_name)
 
+	// Broadcast to clients
 	group_update := &pb.GroupDetails{
 		Status:          true,
 		RecentMessages:  recent_messages,
@@ -108,9 +118,21 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 		}
 	}
 
-	// make a broadcast to all the replicas
-
+	// Broadcast to replicas
 	go func() {
+		// TODO
+
+		// Send our vector clock with the newest message
+		msg_w_clock := pb.TextMessageWithClock{
+			TextMessage: recent_messages[len(recent_messages)-1],
+			Clock:       CurrentTimestamp.clocks,
+		}
+
+		for i, replica := range ReplicaState {
+			log.Println("i = ", i)
+			log.Println("rs = ", replica)
+			replica.Client.SendMessages(context.Background(), &msg_w_clock)
+		}
 		wait.Wait()
 		close(done)
 	}()
