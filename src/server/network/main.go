@@ -23,9 +23,9 @@ func getTCPListener(serverAddress string) net.Listener {
 
 	if err != nil {
 		// raise error
-		log.Fatal("Cannot start server. Reason: TCP Listen Error. Error:", err)
+		log.Fatal("Couldn't obtain TCP Listener. Error:", err)
 	} else {
-		log.Info("TCP Listen Successful")
+		log.Info("Obtained TCP Listener Successfully")
 	}
 
 	return l
@@ -33,7 +33,7 @@ func getTCPListener(serverAddress string) net.Listener {
 
 func ServePublicRequests() {
 
-	log.Info("Starting public(client) service at", PUBLIC_ADDRESS)
+	log.Info("[ServePublicRequests]: Starting public (client) service at", PUBLIC_ADDRESS)
 
 	PublicServer.GrpcServer = grpc.NewServer()
 	pb.RegisterPublicServer(PublicServer.GrpcServer, &PublicServer)
@@ -43,9 +43,9 @@ func ServePublicRequests() {
 	err := PublicServer.GrpcServer.Serve(l)
 
 	if err != nil {
-		log.Fatalf("Error while starting the Public server on the %s listen address %v", l, err.Error())
+		log.Fatalf("[ServePublicRequests]: Error while starting the Public server on the %s listen address %v", l, err.Error())
 	} else {
-		log.Info("Public Server started")
+		log.Info("[ServePublicRequests]: Public Server started")
 	}
 }
 
@@ -53,7 +53,7 @@ func ServePublicRequests() {
 // This keeps the client-server and replica-replica communication separate
 func ServeInternalRequests() {
 
-	log.Info("Starting internal (replication) service at", INTERNAL_ADDRESS)
+	log.Info("[ServeInternalRequests] Starting internal (replication) service at", INTERNAL_ADDRESS)
 
 	InternalServer.GrpcServer = grpc.NewServer()
 
@@ -64,8 +64,8 @@ func ServeInternalRequests() {
 	err := InternalServer.GrpcServer.Serve(l)
 
 	if err != nil {
-		log.Fatalf("Error while starting the gRPC server on the %s listen address %v", l, err.Error())
+		log.Fatalf("[ServeInternalRequests]: Error while starting the gRPC server on the %s listen address %v", l, err.Error())
 	} else {
-		log.Info("Internal Server started")
+		log.Info("[ServeInternalRequests]: Internal Server started")
 	}
 }

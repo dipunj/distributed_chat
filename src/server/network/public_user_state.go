@@ -19,6 +19,7 @@ func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*
 
 	s.Subscribers[client_id].group_name = ""
 	s.Subscribers[client_id].user_name = *msg.UserName
+	s.Subscribers[client_id].server_id = SelfID
 
 	response := pb.Status{Status: true}
 

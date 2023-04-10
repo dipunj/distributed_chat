@@ -318,7 +318,7 @@ func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Emp
 	for k, replica := range ReplicaState {
 		response.Replicas = append(response.Replicas, &pb.ReplicaDetail{
 			Id:        int32(k),
-			IsOnline:  <-replica.IsOnline,
+			IsOnline:  replica.IsOnline,
 			IpAddress: replica.PublicIpAddress,
 		})
 	}

@@ -104,4 +104,6 @@ service Internal {
   rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
   // sync reactions to and from other replicas
   rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
+
+  rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
 }

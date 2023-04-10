@@ -28,24 +28,31 @@ func UpdateServerID() int {
 		log.Fatalln("Server ID out of range")
 	}
 
-	network.InternalServer.SelfID = *server_id
+	network.SelfID = *server_id
 	network.InitializeReplicas(REPLICA_COUNT)
 
 	return *server_id
 }
 
+func Init() {
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+}
+
 func main() {
+
+	Init()
 
 	id := UpdateServerID()
 	log.Info("Server ID: ", id)
 
 	db.ConnectToDB()
 
-	network.ServePublicRequests()
-
-	network.ServeInternalRequests()
+	go network.ServeInternalRequests()
 
 	network.ConnectToReplicas()
+
+	network.ServePublicRequests()
 
 	db.TerminateDBConn()
 }

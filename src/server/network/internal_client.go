@@ -5,29 +5,60 @@ package network
 import (
 	"chat/pb"
 	"context"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const REPLICA_CONNECTION_TIMEOUT = 5 * time.Second
 
-var ReplicaConnectionWaitGroup = &sync.WaitGroup{}
+func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
+
+	stream, err := state.Client.SubscribeToHeartBeat(context.Background(), &emptypb.Empty{})
+
+	if err != nil {
+		log.Debug("An error occurred in streaming for replica id", replicaId, err.Error())
+	} else {
+		// loop infinitely
+		for {
+			log.Debug("Waiting for heartbeat from replica", replicaId)
+
+			// the following call is blocking
+			_, err := stream.Recv()
+
+			if err != nil {
+				code := status.Code(err)
+
+				if code == codes.Unavailable {
+					// connection was closed because the server is unavailable
+					log.Debug("Connection was closed because the server is unavailable code = ", code)
+				} else if code == codes.Canceled {
+					// connection was closed by the client
+					log.Debug("Connection was closed by the client code = ", code)
+				} else {
+					log.Debug("An error occurred in streaming", err.Error())
+				}
+				// break because there is an error with the connection
+				break
+			}
+		}
+	}
+
+	state.IsOnline = false
+}
 
 func DialAndPing(replicaId int) {
-	// this method will be called by a goroutine
-	// this method will ping the replica every 1 second
-	// if the replica is online, it will set the replica state to online
-	// if the replica is offline, it will set the replica state to offline and call grpc dial every 1 second
 
-	defer ReplicaConnectionWaitGroup.Done()
 	state := ReplicaState[replicaId]
 	ip_address := state.InternalIpAddress
+
+	// this loop keeps on retrying to connect to the replica
+	// once the connection is established
 
 	for {
 		ctx, _ := context.WithTimeout(context.Background(), REPLICA_CONNECTION_TIMEOUT)
@@ -36,33 +67,27 @@ func DialAndPing(replicaId int) {
 			ctx,
 			ip_address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                5 * time.Second,
-				Timeout:             5 * time.Second,
-				PermitWithoutStream: true,
-			}),
+			grpc.WithBlock(),
 		)
 
 		if err == nil {
-			// create a new client
+			log.Info("[DialAndPing] TCP Dial successful: Replica ID ", replicaId, " at ", ip_address)
+
+			// create a new client on this connection
 			state.Client = pb.NewInternalClient(conn)
-			state.IsOnline <- true
+			state.IsOnline = true
 
-			conn_state := conn.GetState()
+			ListenHeartBeat(state, replicaId)
 
-			// the following call is blocking
-			conn.WaitForStateChange(context.Background(), conn_state)
-
-			// Check if the connection is still alive
-			if conn_state == connectivity.TransientFailure || conn_state == connectivity.Shutdown {
-				log.Error("Connection to replica", replicaId, " at ", ip_address, " is closed")
+			if !state.IsOnline {
+				// if the replica is offline, close the connection
+				conn.Close()
 			}
 		} else {
-			log.Error("Dial failed: Replica ID ", replicaId, " at ", ip_address, " with error ", err)
+			log.Error("[DialAndPing] TCP Dial failed: Replica ID ", replicaId, " at ", ip_address, " with error ", err)
 		}
 
 		// retry after 1 second
-		state.IsOnline <- false
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -76,7 +101,6 @@ func ConnectToReplicas() {
 	// if the replica is offline, it will set the replica state to offline and call grpc dial every 1 second
 
 	for _, replicaId := range ReplicaIds {
-		ReplicaConnectionWaitGroup.Add(1)
 		go DialAndPing(replicaId)
 	}
 

@@ -359,6 +359,7 @@ type InternalClient interface {
 	SendMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
 	SendReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error)
 }
 
 type internalClient struct {
@@ -396,6 +397,38 @@ func (c *internalClient) SendReactions(ctx context.Context, in *ReactionWithCloc
 	return out, nil
 }
 
+func (c *internalClient) SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Internal_ServiceDesc.Streams[0], "/Internal/SubscribeToHeartBeat", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &internalSubscribeToHeartBeatClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Internal_SubscribeToHeartBeatClient interface {
+	Recv() (*Status, error)
+	grpc.ClientStream
+}
+
+type internalSubscribeToHeartBeatClient struct {
+	grpc.ClientStream
+}
+
+func (x *internalSubscribeToHeartBeatClient) Recv() (*Status, error) {
+	m := new(Status)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // InternalServer is the server API for Internal service.
 // All implementations must embed UnimplementedInternalServer
 // for forward compatibility
@@ -406,6 +439,7 @@ type InternalServer interface {
 	SendMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
 	// sync reactions to and from other replicas
 	SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
+	SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error
 	mustEmbedUnimplementedInternalServer()
 }
 
@@ -421,6 +455,9 @@ func (UnimplementedInternalServer) SendMessages(context.Context, *TextMessageWit
 }
 func (UnimplementedInternalServer) SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendReactions not implemented")
+}
+func (UnimplementedInternalServer) SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeToHeartBeat not implemented")
 }
 func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
@@ -489,6 +526,27 @@ func _Internal_SendReactions_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Internal_SubscribeToHeartBeat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(emptypb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(InternalServer).SubscribeToHeartBeat(m, &internalSubscribeToHeartBeatServer{stream})
+}
+
+type Internal_SubscribeToHeartBeatServer interface {
+	Send(*Status) error
+	grpc.ServerStream
+}
+
+type internalSubscribeToHeartBeatServer struct {
+	grpc.ServerStream
+}
+
+func (x *internalSubscribeToHeartBeatServer) Send(m *Status) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Internal_ServiceDesc is the grpc.ServiceDesc for Internal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -509,6 +567,12 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Internal_SendReactions_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeToHeartBeat",
+			Handler:       _Internal_SubscribeToHeartBeat_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "comm.proto",
 }

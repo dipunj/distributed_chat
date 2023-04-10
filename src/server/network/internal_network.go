@@ -20,8 +20,9 @@ type InternalServerType struct {
 }
 
 type ReplicaStateType struct {
+	Changed           chan bool
 	Client            pb.InternalClient
-	IsOnline          chan bool
+	IsOnline          bool
 	PublicIpAddress   string
 	InternalIpAddress string
 }
@@ -33,9 +34,11 @@ var InternalServer = InternalServerType{}
 
 // ReplicaIds will be populated at run time
 // based on what id is given to the current instance of the server
+
+var SelfID int
 var ReplicaIds = []int{}
 
-var ReplicaState map[int]ReplicaStateType = make(map[int]ReplicaStateType)
+var ReplicaState map[int]*ReplicaStateType = make(map[int]*ReplicaStateType)
 
 func GetReplicaAddressFromID(replicaID int, port string) string {
 	ip_prefix := "172.30.100.10"
@@ -46,15 +49,15 @@ func InitializeReplicas(replica_count int) {
 
 	// populate replica_ids array with ids from 1 to replica_count, except selfID
 	for i := 1; i <= replica_count; i++ {
-		if i != InternalServer.SelfID {
+		if i != SelfID {
 			ReplicaIds = append(ReplicaIds, i)
-			// initially all replicas are offline
-			ReplicaState[i] = ReplicaStateType{
-				IsOnline:          make(chan bool, 1),
+			// initially we assume all replicas are offline
+			ReplicaState[i] = &ReplicaStateType{
+				Changed:           make(chan bool),
+				IsOnline:          false,
 				PublicIpAddress:   GetReplicaAddressFromID(i, DEFAULT_PUBLIC_PORT),
 				InternalIpAddress: GetReplicaAddressFromID(i, DEFAULT_INTERNAL_PORT),
 			}
-			ReplicaState[i].IsOnline <- false
 		}
 	}
 

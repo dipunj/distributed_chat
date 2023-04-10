@@ -21,7 +21,7 @@ var (
 )
 
 func ConnectToDB() {
-	HOST := HOST_PREFIX + "_" + strconv.Itoa(network.InternalServer.SelfID)
+	HOST := HOST_PREFIX + "_" + strconv.Itoa(network.SelfID)
 
 	// urlExample := "postgres://username:password@localhost:5432/database_name"
 	db_url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", USERNAME, PASSWORD, HOST, PORT, DB_NAME)

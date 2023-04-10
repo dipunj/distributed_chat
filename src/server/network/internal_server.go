@@ -7,6 +7,11 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+func (s *InternalServerType) SubscribeToHeartBeat(_ *emptypb.Empty, stream pb.Internal_SubscribeToHeartBeatServer) error {
+	err := make(chan error)
+	return <-err
+}
+
 func (s *InternalServerType) SendOnlineUsers(ctx context.Context, msg *pb.UserStateWithClock) (*emptypb.Empty, error) {
 	// this method will be called by the server A after
 	// the state of a user logged into the server A changes
