@@ -15,6 +15,7 @@ import (
 )
 
 func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage, ts VectorClock) error {
+	log.Println("CALLED INSERT MESSAGE CYRING")
 
 	var new_message_query string = `
 		INSERT INTO messages (
@@ -28,14 +29,16 @@ func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage
 			vector_ts
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8
-		) RETURNING 
+		)
+		ON CONFLICT (vector_ts) DO NOTHING
+		RETURNING 
 			id, sender_name, group_name, content, client_sent_at, server_received_at, vector_ts
 	`
 	server_received_at := time.Now()
 	var row pb.TextMessage
 	var vector_ts []int
 
-	var vector_ts_str = CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+	var vector_ts_str = ts.ToDbFormat()
 
 	log.Println(vector_ts_str)
 
@@ -67,7 +70,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	err := insertNewMessage(s.DBPool, ctx, msg, CurrentTimestamp)
+	err := insertNewMessage(s.DBPool, ctx, msg, CurrentTimestamp.Increment(ReplicaId))
 
 	if err == nil {
 		//		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
@@ -122,17 +125,21 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	go func() {
 		// TODO
 
-		// Send our vector clock with the newest message
-		msg_w_clock := pb.TextMessageWithClock{
-			TextMessage: recent_messages[len(recent_messages)-1],
-			Clock:       CurrentTimestamp.clocks,
+		if len(recent_messages) > 0 {
+			// Send our vector clock with the newest message
+			msg_w_clock := pb.TextMessageWithClock{
+				TextMessage: recent_messages[len(recent_messages)-1],
+				Clock:       CurrentTimestamp.clocks,
+			}
+
+			log.Println(msg_w_clock)
+
+			for i, replica := range ReplicaState {
+				log.Println("i = ", i)
+				replica.Client.SendMessages(context.Background(), &msg_w_clock)
+			}
 		}
 
-		for i, replica := range ReplicaState {
-			log.Println("i = ", i)
-			log.Println("rs = ", replica)
-			replica.Client.SendMessages(context.Background(), &msg_w_clock)
-		}
 		wait.Wait()
 		close(done)
 	}()

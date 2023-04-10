@@ -45,7 +45,7 @@ func GetReplicaAddressFromID(replicaID int, port string) string {
 func InitializeReplicas(replica_count int) {
 
 	// populate replica_ids array with ids from 1 to replica_count, except selfID
-	for i := 1; i <= replica_count; i++ {
+	for i := 0; i < replica_count; i++ {
 		if i != InternalServer.SelfID {
 			ReplicaIds = append(ReplicaIds, i)
 			// initially all replicas are offline

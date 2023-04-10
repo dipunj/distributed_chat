@@ -28,3 +28,6 @@ CREATE INDEX IF NOT EXISTS group_name_msg_type on MESSAGES(group_name, message_t
 -- a username can have only one reaction per message
 -- hence the same sender_name and parent_msg_id must not occur twice in the table
 CREATE UNIQUE INDEX IF NOT EXISTS unique_reactions ON MESSAGES (message_type, parent_msg_id, sender_name);
+
+-- timestamps should also be unique
+CREATE UNIQUE INDEX IF NOT EXISTS unique_ts ON MESSAGES (vector_ts);
