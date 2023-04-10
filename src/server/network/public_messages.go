@@ -22,16 +22,17 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 			sender_name,
 			group_name,
 			content,
-			vector_timestamp,
 			client_sent_at,
-			server_received_at
+			server_received_at,
+			vector_ts
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8
 		) RETURNING 
-			id, sender_name, group_name, content, vector_timestamp, client_sent_at, server_received_at
+			id, sender_name, group_name, content, client_sent_at, server_received_at, vector_ts
 	`
 	server_received_at := time.Now()
 	var row pb.TextMessage
+	var vector_ts []int
 
 	var vector_ts_str = CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
 
@@ -46,9 +47,9 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 		msg.SenderName,
 		msg.GroupName,
 		msg.Content,
-		vector_ts_str,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
+		vector_ts_str,
 	}
 
 	var clientSentAt time.Time
@@ -56,19 +57,19 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	err := s.DBPool.QueryRow(context.Background(),
 		new_message_query,
 		params...,
-	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &vector_ts_str, &clientSentAt, &serverReceivedAt)
+	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt, &vector_ts)
 
 	if err == nil {
 		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
 		row.ClientSentAt = timestamppb.New(clientSentAt)
 
-		log.Info("[CreateNewMessage] for ", client_id, " with user name", msg.SenderName)
+		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, " and with clock ", vector_ts)
 
 		defer s.broadcastUpdates(msg.GroupName)
 
 		return &pb.Status{Status: true}, err
 	} else {
-		log.Error("[CreateNewMessage] for ", client_id, " with user name", msg.SenderName, err)
+		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err)
 		return &pb.Status{Status: false}, err
 	}
 }
@@ -128,10 +129,10 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 			sender_name,
 			group_name,
 			content,
-			vector_timestamp,
 			parent_msg_id,
 			client_sent_at,
-			server_received_at
+			server_received_at,
+			vector_ts
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) 
@@ -162,10 +163,10 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		msg.SenderName,
 		msg.GroupName,
 		msg.Content, // either "like" or "unlike"
-		vector_ts_str,
 		msg.OnMessageId,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
+		vector_ts_str,
 	}
 
 	var row interface{}

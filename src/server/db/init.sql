@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS MESSAGES (
 	sender_name varchar(128),
 	group_name varchar(128),
 	content varchar(90),
-	vector_timestamp varchar(64),
 	client_sent_at timestamp with time zone NOT NULL,
 	server_received_at timestamp with time zone NOT NULL,
 	vector_ts BIGINT ARRAY [5] NOT NULL,

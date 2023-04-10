@@ -29,6 +29,7 @@ func (vc *VectorClock) UpdateFrom(other VectorClock, my_id int) {
 	}
 }
 
+// Convert timestamp
 func (vc VectorClock) ToDbFormat() string {
 	var clock_strings = make([]string, len(vc.clocks))
 
@@ -36,7 +37,7 @@ func (vc VectorClock) ToDbFormat() string {
 		clock_strings[i] = strconv.Itoa(vc.clocks[i])
 	}
 
-	return strings.Join(clock_strings[:], ",")
+	return "{" + strings.Join(clock_strings[:], ",") + "}"
 }
 
 func FromDbFormat(db_str string) VectorClock {
