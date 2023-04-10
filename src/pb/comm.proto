@@ -73,35 +73,47 @@ message Clock {
 }
 
 message UserStateWithClock {
-  optional string user_name = 16;
-  optional string group_name = 17;
+  string client_id = 1;
+  int32 replica_id = 2;
+  UserState user_state = 3;
   repeated int64 clock = 19;
 }
 
+message ClientIdWithClock {
+  string client_id = 1;
+  int32 replica_id = 2;
+  repeated int64 clock = 3;
+}
+
 message TextMessageWithClock {
-  TextMessage TextMessage = 1;
+  string client_id = 1;
+  TextMessage text_message = 2;
   Clock Clock = 2;
 }
 
 message ReactionWithClock {
-  optional int64 id = 16;
-  string sender_name = 2;
-  string group_name = 3;
-  int64 on_message_id = 4; // the message id on which the reaction is done
-  string content = 5;      // "like" | "unlike"
-  optional google.protobuf.Timestamp clientSentAt = 17;
-  optional google.protobuf.Timestamp serverReceivedAt = 18;
-  repeated int64 clock = 19;
+  string client_id = 1;
+  Reaction reaction = 2;
+  repeated int64 clock = 3;
 }
 
 // this service is used between replicas
 service Internal {
-  // sync online users to and from other replicas
-  rpc SendOnlineUsers(UserStateWithClock) returns (google.protobuf.Empty) {}
+  rpc CreateNewMessage(TextMessageWithClock) returns (Status) {}
+
+  rpc UpdateReaction(ReactionWithClock) returns (Status) {}
+
+  rpc SwitchUser(UserStateWithClock) returns (Status) {}
+
+  rpc SwitchGroup(UserStateWithClock) returns (Status) {}
+
+  rpc UserIsOffline(ClientIdWithClock) returns (Status) {}
+
+  rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
+
   // sync messages to and from other replicas
   rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
-  // sync reactions to and from other replicas
-  rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
+
   // request messages newer than the given clock
   rpc RequestMessages(Clock) returns (stream TextMessageWithClock) {}
 }
