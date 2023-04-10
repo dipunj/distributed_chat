@@ -327,3 +327,32 @@ func handleSwitchGroup(user_ip string, on_replica int, msg *pb.UserState, curren
 
 	log.Info("Client [", user_ip, "] has switched to Group: ", *msg.GroupName, "on replica ID: ", on_replica)
 }
+
+func handleUserIsOffline(user_ip string, on_replica int, current_subscribers *map[string]*ResponseStream, clock VectorClock) {
+
+	if _, ok := (*current_subscribers)[user_ip]; !ok {
+		(*current_subscribers)[user_ip] = &ResponseStream{
+			server_id:  on_replica,
+			stream:     nil,
+			client_id:  user_ip,
+			user_name:  "",
+			group_name: "",
+			is_online:  false,
+			error:      make(chan error),
+		}
+	} else {
+
+		(*current_subscribers)[user_ip].server_id = on_replica
+		(*current_subscribers)[user_ip].is_online = false
+
+	}
+
+	old_group_name := (*current_subscribers)[user_ip].group_name
+
+	if old_group_name != "" {
+		// notify the old group that the user has left
+		defer broadcastGroupUpdatesToImmediateMembers(old_group_name, *current_subscribers)
+	}
+
+	log.Info("Client [", user_ip, "] has gone offline on replica ID: ", on_replica)
+}

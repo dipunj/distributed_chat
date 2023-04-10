@@ -31,10 +31,8 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 	if err == nil {
 		log.Info("[CreateNewMessage] from replica",
 			client_id,
-			"message sender name",
-			msg.SenderName,
-			"message text",
-			msg.Content)
+			" sender name ",
+			msg.SenderName)
 
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, PublicServer.Subscribers)
 
@@ -43,11 +41,9 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 	} else {
 		log.Error("[CreateNewMessage] from replica",
 			client_id,
-			"message sender name",
+			" sender name ",
 			msg.SenderName,
-			"message text",
-			msg.Content,
-			"error",
+			" error",
 			err.Error())
 
 		return &pb.Status{Status: false}, err
@@ -99,7 +95,6 @@ func (s *InternalServerType) SwitchUser(ctx context.Context, msg_w_clock *pb.Use
 }
 
 func (s *InternalServerType) SwitchGroup(ctx context.Context, msg_w_clock *pb.UserStateWithClock) (*pb.Status, error) {
-	log.Info("[SwitchGroup] (internal server) called")
 	log.Debug("[SwitchGroup] (internal server) called")
 	// this method will be called by the server A after
 	// a user switches from one group to another
@@ -112,6 +107,20 @@ func (s *InternalServerType) SwitchGroup(ctx context.Context, msg_w_clock *pb.Us
 	// TODO: update clock?
 
 	handleSwitchGroup(user_ip, replica_id, msg, &PublicServer.Subscribers, timestamp)
+
+	return &pb.Status{Status: true}, nil
+}
+
+func (s *InternalServerType) UserIsOffline(ctx context.Context, msg_w_clock *pb.ClientIdWithClock) (*pb.Status, error) {
+	log.Debug("[UserIsOffline] (internal server) called")
+	// this method will be called by the server A after
+	// a user switches user name
+
+	user_ip := msg_w_clock.ClientId
+	replica_id := int(msg_w_clock.ReplicaId)
+	timestamp := msg_w_clock.Clock
+
+	handleUserIsOffline(user_ip, replica_id, &PublicServer.Subscribers, timestamp)
 
 	return &pb.Status{Status: true}, nil
 }

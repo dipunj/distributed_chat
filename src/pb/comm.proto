@@ -75,6 +75,12 @@ message UserStateWithClock {
   repeated int64 clock = 19;
 }
 
+message ClientIdWithClock {
+  string client_id = 1;
+  int32 replica_id = 2;
+  repeated int64 clock = 3;
+}
+
 message TextMessageWithClock {
   string client_id = 1;
   TextMessage text_message = 2;
@@ -97,6 +103,8 @@ service Internal {
   rpc SwitchUser(UserStateWithClock) returns (Status) {}
 
   rpc SwitchGroup(UserStateWithClock) returns (Status) {}
+
+  rpc UserIsOffline(ClientIdWithClock) returns (Status) {}
 
   rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
 }

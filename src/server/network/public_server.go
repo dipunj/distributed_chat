@@ -156,10 +156,11 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 
 		// Update the isOnline field of the ResponseStream to false
 		rs.is_online = false
+
 		broadcastGroupUpdatesToImmediateMembers(rs.group_name, s.Subscribers)
 
-		// Remove the ResponseStream from the Subscribers map
-		delete(s.Subscribers, clientID)
+		notifyReplicaAboutOfflineImmediateUser(clientID, ctx)
+
 	}()
 
 	return <-rs.error

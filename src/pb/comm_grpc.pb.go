@@ -357,6 +357,7 @@ type InternalClient interface {
 	UpdateReaction(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*Status, error)
 	SwitchUser(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error)
 	SwitchGroup(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error)
+	UserIsOffline(ctx context.Context, in *ClientIdWithClock, opts ...grpc.CallOption) (*Status, error)
 	SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error)
 }
 
@@ -404,6 +405,15 @@ func (c *internalClient) SwitchGroup(ctx context.Context, in *UserStateWithClock
 	return out, nil
 }
 
+func (c *internalClient) UserIsOffline(ctx context.Context, in *ClientIdWithClock, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/Internal/UserIsOffline", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *internalClient) SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Internal_ServiceDesc.Streams[0], "/Internal/SubscribeToHeartBeat", opts...)
 	if err != nil {
@@ -444,6 +454,7 @@ type InternalServer interface {
 	UpdateReaction(context.Context, *ReactionWithClock) (*Status, error)
 	SwitchUser(context.Context, *UserStateWithClock) (*Status, error)
 	SwitchGroup(context.Context, *UserStateWithClock) (*Status, error)
+	UserIsOffline(context.Context, *ClientIdWithClock) (*Status, error)
 	SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error
 	mustEmbedUnimplementedInternalServer()
 }
@@ -463,6 +474,9 @@ func (UnimplementedInternalServer) SwitchUser(context.Context, *UserStateWithClo
 }
 func (UnimplementedInternalServer) SwitchGroup(context.Context, *UserStateWithClock) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SwitchGroup not implemented")
+}
+func (UnimplementedInternalServer) UserIsOffline(context.Context, *ClientIdWithClock) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserIsOffline not implemented")
 }
 func (UnimplementedInternalServer) SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeToHeartBeat not implemented")
@@ -552,6 +566,24 @@ func _Internal_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Internal_UserIsOffline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientIdWithClock)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).UserIsOffline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/UserIsOffline",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).UserIsOffline(ctx, req.(*ClientIdWithClock))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Internal_SubscribeToHeartBeat_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(emptypb.Empty)
 	if err := stream.RecvMsg(m); err != nil {
@@ -595,6 +627,10 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SwitchGroup",
 			Handler:    _Internal_SwitchGroup_Handler,
+		},
+		{
+			MethodName: "UserIsOffline",
+			Handler:    _Internal_UserIsOffline_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
