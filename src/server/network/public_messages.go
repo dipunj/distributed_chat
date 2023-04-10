@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage, ts VectorClock) error {
 
 	var new_message_query string = `
 		INSERT INTO messages (
@@ -23,14 +24,20 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 			group_name,
 			content,
 			client_sent_at,
-			server_received_at
+			server_received_at,
+			vector_ts
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7
+			$1, $2, $3, $4, $5, $6, $7, $8
 		) RETURNING 
-			id, sender_name, group_name, content, client_sent_at, server_received_at
+			id, sender_name, group_name, content, client_sent_at, server_received_at, vector_ts
 	`
 	server_received_at := time.Now()
 	var row pb.TextMessage
+	var vector_ts []int
+
+	var vector_ts_str = CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+
+	log.Println(vector_ts_str)
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -43,26 +50,35 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 		msg.Content,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
+		vector_ts_str,
 	}
 
 	var clientSentAt time.Time
 	var serverReceivedAt time.Time
-	err := s.DBPool.QueryRow(context.Background(),
+	err := db.QueryRow(context.Background(),
 		new_message_query,
 		params...,
-	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt)
+	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt, &vector_ts)
+
+	return err
+}
+
+func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+	client, _ := peer.FromContext(ctx)
+	client_id := client.Addr.String()
+
+	err := insertNewMessage(s.DBPool, ctx, msg, CurrentTimestamp)
 
 	if err == nil {
-		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
-		row.ClientSentAt = timestamppb.New(clientSentAt)
-
-		log.Info("[CreateNewMessage] for ", client_id, " with user name", msg.SenderName)
+		//		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
+		//		row.ClientSentAt = timestamppb.New(clientSentAt)
+		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName)
 
 		defer s.broadcastUpdates(msg.GroupName)
 
 		return &pb.Status{Status: true}, err
 	} else {
-		log.Error("[CreateNewMessage] for ", client_id, " with user name", msg.SenderName, err)
+		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err)
 		return &pb.Status{Status: false}, err
 	}
 }
@@ -75,6 +91,7 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	online_users := s.getOnlineUsers(group_name)
 	recent_messages := s.getRecentMessages(group_name)
 
+	// Broadcast to clients
 	group_update := &pb.GroupDetails{
 		Status:          true,
 		RecentMessages:  recent_messages,
@@ -101,9 +118,21 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 		}
 	}
 
-	// make a broadcast to all the replicas
-
+	// Broadcast to replicas
 	go func() {
+		// TODO
+
+		// Send our vector clock with the newest message
+		msg_w_clock := pb.TextMessageWithClock{
+			TextMessage: recent_messages[len(recent_messages)-1],
+			Clock:       CurrentTimestamp.clocks,
+		}
+
+		for i, replica := range ReplicaState {
+			log.Println("i = ", i)
+			log.Println("rs = ", replica)
+			replica.Client.SendMessages(context.Background(), &msg_w_clock)
+		}
 		wait.Wait()
 		close(done)
 	}()
@@ -111,8 +140,11 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	<-done
 }
 
-func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interface{}, error) {
-	var add_reaction_query string = `
+func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
+
+	// This works because (message_type, parent_msg_id, sender_name) is the
+	// same as the unique_reactions index?
+	var update_reaction_query string = `
 		INSERT INTO messages (
 			message_type,
 			client_id,
@@ -121,64 +153,14 @@ func (s *PublicServerType) addLike(client_id string, msg *pb.Reaction) (interfac
 			content,
 			parent_msg_id,
 			client_sent_at,
-			server_received_at
+			server_received_at,
+			vector_ts
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) 
+		ON CONFLICT (message_type, parent_msg_id, sender_name)
+			DO UPDATE SET content = $5
 	`
-
-	server_received_at := time.Now()
-
-	params := []interface{}{
-		"reaction",
-		client_id,
-		msg.SenderName,
-		msg.GroupName,
-		"like",
-		msg.OnMessageId,
-		msg.ClientSentAt.AsTime(),
-		server_received_at,
-	}
-
-	var row interface{}
-	err := s.DBPool.QueryRow(context.Background(),
-		add_reaction_query,
-		params...,
-	).Scan(&row)
-
-	return row, err
-}
-
-func (s *PublicServerType) removeLike(msg *pb.Reaction) (interface{}, error) {
-
-	var remove_reaction_query string = `
-			DELETE FROM messages
-			WHERE 
-				message_type = $1
-				and parent_msg_id = $2
-				and sender_name = $3 
-				and group_name = $4
-				and content = $5
-			`
-
-	params := []interface{}{
-		"reaction",
-		msg.OnMessageId,
-		msg.SenderName,
-		msg.GroupName,
-		"like",
-	}
-
-	var row interface{}
-	err := s.DBPool.QueryRow(context.Background(),
-		remove_reaction_query,
-		params...,
-	).Scan(&row)
-
-	return row, err
-}
-
-func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -193,12 +175,27 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		msg.OnMessageId,
 	)
 
-	var err error
-	if msg.Content == "like" {
-		_, err = s.addLike(client_id, msg)
-	} else {
-		_, err = s.removeLike(msg)
+	vector_ts_str := CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+
+	server_received_at := time.Now()
+
+	params := []interface{}{
+		"reaction",
+		client_id,
+		msg.SenderName,
+		msg.GroupName,
+		msg.Content, // either "like" or "unlike"
+		msg.OnMessageId,
+		msg.ClientSentAt.AsTime(),
+		server_received_at,
+		vector_ts_str,
 	}
+
+	var row interface{}
+	err := s.DBPool.QueryRow(context.Background(),
+		update_reaction_query,
+		params...,
+	).Scan(&row)
 
 	if err != nil && err != pgx.ErrNoRows {
 		log.Error(err)

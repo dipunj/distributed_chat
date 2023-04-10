@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+const NUM_REPLICAS = 5
+
 const (
 	// listen on all interfaces
 	DEFAULT_INTERFACE     = "0.0.0.0"
@@ -57,7 +59,8 @@ func ServeInternalRequests() {
 
 	InternalServer.GrpcServer = grpc.NewServer()
 
-	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	//	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServer)
 
 	// Serve() spawns a new goroutine under the hood for each new request
 	l := getTCPListener(INTERNAL_ADDRESS)
@@ -69,3 +72,6 @@ func ServeInternalRequests() {
 		log.Info("[ServeInternalRequests]: Internal Server started")
 	}
 }
+
+var CurrentTimestamp = makeVectorClock(NUM_REPLICAS)
+var ReplicaId int

@@ -75,14 +75,8 @@ message UserStateWithClock {
 }
 
 message TextMessageWithClock {
-  optional int64 id = 16;
-  string sender_name = 2;
-  string group_name = 3;
-  string content = 5;
-  int64 likedBy = 6;
-  optional google.protobuf.Timestamp clientSentAt = 17;
-  optional google.protobuf.Timestamp serverReceivedAt = 18;
-  repeated int64 clock = 19;
+  TextMessage TextMessage = 1;
+  repeated int64 Clock = 2;
 }
 
 message ReactionWithClock {

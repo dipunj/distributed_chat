@@ -3,6 +3,7 @@ package main
 import (
 	"chat/server/db"
 	"chat/server/network"
+	"context"
 	"flag"
 
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,26 @@ const MAX_CHAR_PER_LINE = 80
 
 // this function is called before main() to parse the command line arguments
 // and set the server id and the possible replica_ids
+
+func loadSavedTimestamp() network.VectorClock {
+	// TODO: It's probably possible that the last item in the database doesn't
+	// have the most recent clock values for all replicas. Should we store the
+	// timestamp in some separate table, too?
+	var most_recent_query string = `
+		SELECT vector_timestamp FROM messages
+			WHERE id = (SELECT MAX(id) FROM messages)
+	`
+
+	var timestamp_str = "0,0,0,0,0"
+
+	network.PublicServer.DBPool.QueryRow(
+		context.Background(), most_recent_query,
+	).Scan(&timestamp_str)
+
+	log.Info("Loaded timestamp", timestamp_str, "from the database.")
+
+	return network.FromDbFormat(timestamp_str)
+}
 
 func UpdateServerID() int {
 	server_id := flag.Int("id", -1, "The ID of the server")
@@ -40,7 +61,6 @@ func Init() {
 }
 
 func main() {
-
 	Init()
 
 	id := UpdateServerID()
