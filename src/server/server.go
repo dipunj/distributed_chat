@@ -79,11 +79,11 @@ func main() {
 
 	db.ConnectToDB()
 
-	network.ServePublicRequests()
-
-	network.ServeInternalRequests()
+	go network.ServeInternalRequests()
 
 	network.ConnectToReplicas()
+
+	network.ServePublicRequests()
 
 	db.TerminateDBConn()
 }

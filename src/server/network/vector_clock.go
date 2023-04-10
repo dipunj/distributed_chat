@@ -29,7 +29,7 @@ func (vc *VectorClock) UpdateFrom(other VectorClock, my_id int) {
 	}
 }
 
-// Convert timestamp
+// Convert timestamp to a string that can be used in a SQL INSERT statement
 func (vc VectorClock) ToDbFormat() string {
 	var clock_strings = make([]string, len(vc.clocks))
 
