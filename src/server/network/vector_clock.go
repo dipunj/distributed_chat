@@ -6,12 +6,16 @@ import (
 )
 
 type VectorClock struct {
-	clocks []int
+	clocks []int64
+}
+
+func makeVectorClock(num_replicas int) VectorClock {
+	return VectorClock{clocks: make([]int64, num_replicas)}
 }
 
 // Increment the vector clock and return its previous value
 func (vc *VectorClock) Increment(my_id int) VectorClock {
-	var ret = VectorClock{clocks: make([]int, len(vc.clocks))}
+	var ret = VectorClock{clocks: make([]int64, len(vc.clocks))}
 	copy(ret.clocks, vc.clocks)
 	vc.clocks[my_id] += 1
 	return ret
@@ -34,7 +38,7 @@ func (vc VectorClock) ToDbFormat() string {
 	var clock_strings = make([]string, len(vc.clocks))
 
 	for i := range clock_strings {
-		clock_strings[i] = strconv.Itoa(vc.clocks[i])
+		clock_strings[i] = strconv.Itoa(int(vc.clocks[i]))
 	}
 
 	return "{" + strings.Join(clock_strings[:], ",") + "}"
@@ -42,14 +46,14 @@ func (vc VectorClock) ToDbFormat() string {
 
 func FromDbFormat(db_str string) VectorClock {
 	var clock_strings = strings.Split(db_str, ",")
-	var clocks = make([]int, len(clock_strings))
+	var clocks = make([]int64, len(clock_strings))
 
 	for i := range clocks {
 		c, err := strconv.Atoi(clock_strings[i])
 		if err != nil {
 			clocks[i] = -1
 		} else {
-			clocks[i] = c
+			clocks[i] = int64(c)
 		}
 	}
 

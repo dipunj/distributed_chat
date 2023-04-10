@@ -72,5 +72,5 @@ func ServeInternalRequests() {
 	}
 }
 
-var CurrentTimestamp = VectorClock{clocks: make([]int, NUM_REPLICAS)}
+var CurrentTimestamp = makeVectorClock(NUM_REPLICAS)
 var ReplicaId int
