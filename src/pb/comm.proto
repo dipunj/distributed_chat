@@ -68,6 +68,10 @@ service Public {
 // the clock length is the number of replicas
 // clock[i] is the logical time of replica i for the message. 0-based index.
 
+message Clock {
+  repeated int64 Clock = 1;
+}
+
 message UserStateWithClock {
   optional string user_name = 16;
   optional string group_name = 17;
@@ -76,7 +80,7 @@ message UserStateWithClock {
 
 message TextMessageWithClock {
   TextMessage TextMessage = 1;
-  repeated int64 Clock = 2;
+  Clock Clock = 2;
 }
 
 message ReactionWithClock {
@@ -98,4 +102,6 @@ service Internal {
   rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
   // sync reactions to and from other replicas
   rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
+  // request messages newer than the given clock
+  rpc RequestMessages(Clock) returns (stream TextMessageWithClock) {}
 }
