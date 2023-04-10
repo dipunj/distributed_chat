@@ -1,6 +1,43 @@
 version: "3.9"
 
 services:
+  server_0:
+    image: chat-server:latest
+    container_name: chat_server_0
+    restart: on-failure:5
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: server
+    depends_on:
+      db_0:
+        condition: service_healthy
+    command: [ "-id=0" ]
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.100
+
+  db_0:
+    image: chat-db:latest
+    container_name: chat_db_0
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: db
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data_0:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      retries: 15
+    networks:
+      cs2510:
+        ipv4_address: 172.30.100.200
+
   server_1:
     image: chat-server:latest
     container_name: chat_server_1
@@ -149,43 +186,6 @@ services:
       cs2510:
         ipv4_address: 172.30.100.204
 
-  server_5:
-    image: chat-server:latest
-    container_name: chat_server_5
-    restart: on-failure:5
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      target: server
-    depends_on:
-      db_5:
-        condition: service_healthy
-    command: [ "-id=5" ]
-    networks:
-      cs2510:
-        ipv4_address: 172.30.100.105
-
-  db_5:
-    image: chat-db:latest
-    container_name: chat_db_5
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      target: db
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    volumes:
-      - db_data_5:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 1s
-      retries: 15
-    networks:
-      cs2510:
-        ipv4_address: 172.30.100.205
-
   client1:
     image: chat-client:latest
     build:
@@ -217,8 +217,8 @@ networks:
           gateway: 172.30.100.1
 
 volumes:
+  db_data_0:
   db_data_1:
   db_data_2:
   db_data_3:
   db_data_4:
-  db_data_5:

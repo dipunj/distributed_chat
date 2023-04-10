@@ -45,7 +45,7 @@ func UpdateServerID() int {
 
 	if *server_id == -1 {
 		log.Fatalln("Server ID not provided")
-	} else if *server_id < 1 || *server_id > REPLICA_COUNT {
+	} else if *server_id < 0 || *server_id >= REPLICA_COUNT {
 		log.Fatalln("Server ID out of range")
 	}
 
@@ -56,24 +56,6 @@ func UpdateServerID() int {
 }
 
 func main() {
-	//	network.ReplicaId = GetServerID()
-	network.ReplicaId = 0
-
-	/*
-		//	db_host := fmt.Sprintf("chat_db%d", network.ReplicaId)
-		db_host := "chat_db"
-
-		client_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_PUBLIC_PORT
-		replication_serve_address := DEFAULT_INTERFACE + ":" + DEFAULT_INTERNAL_PORT
-
-		db.ConnectToDB(db_host)
-		defer db.TerminateDBConn()
-
-		network.CurrentTimestamp = loadSavedTimestamp()
-
-		go network.ServerRequestsToReplicas(replication_serve_address, network.ReplicaId)
-		network.ServeRequestsToClients(client_serve_address)
-	*/
 	id := UpdateServerID()
 	log.Info("Server ID: ", id)
 
