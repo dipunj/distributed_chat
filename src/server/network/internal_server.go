@@ -23,7 +23,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 
 	// i.e any replicated messages will not be forwarded by the server A to other servers")
 	msg := msg_w_clock.TextMessage
-	msgTimestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock.Clock
 	client_id := msg_w_clock.ClientId
 
 	err := insertNewMessage(client_id, msg, msgTimestamp)

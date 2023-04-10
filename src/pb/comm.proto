@@ -88,7 +88,7 @@ message ClientIdWithClock {
 message TextMessageWithClock {
   string client_id = 1;
   TextMessage text_message = 2;
-  Clock Clock = 2;
+  Clock Clock = 3;
 }
 
 message ReactionWithClock {
