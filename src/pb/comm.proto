@@ -92,12 +92,14 @@ message ReactionWithClock {
 
 // this service is used between replicas
 service Internal {
-  // sync online users to and from other replicas
-  rpc SendOnlineUsers(UserStateWithClock) returns (google.protobuf.Empty) {}
-  // sync messages to and from other replicas
-  rpc SendMessages(TextMessageWithClock) returns (google.protobuf.Empty) {}
-  // sync reactions to and from other replicas
-  rpc SendReactions(ReactionWithClock) returns (google.protobuf.Empty) {}
+
+  rpc CreateNewMessage(TextMessageWithClock) returns (Status) {}
+
+  rpc UpdateReaction(ReactionWithClock) returns (Status) {}
+
+  rpc SwitchUser(UserState) returns (Status) {}
+
+  rpc SwitchGroup(UserState) returns (GroupDetails) {}
 
   rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
 }

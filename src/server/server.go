@@ -3,7 +3,6 @@ package main
 import (
 	"chat/server/db"
 	"chat/server/network"
-	"context"
 	"flag"
 
 	log "github.com/sirupsen/logrus"
@@ -11,7 +10,7 @@ import (
 
 // changing this value will change the number of replicas
 // the docker-compose file also needs to be changed
-const REPLICA_COUNT = 5
+const TOTAL_SERVER_COUNT = 5
 
 // I think this is dead code
 const MAX_CHAR_PER_LINE = 80
@@ -19,52 +18,35 @@ const MAX_CHAR_PER_LINE = 80
 // this function is called before main() to parse the command line arguments
 // and set the server id and the possible replica_ids
 
-func loadSavedTimestamp() network.VectorClock {
-	// TODO: It's probably possible that the last item in the database doesn't
-	// have the most recent clock values for all replicas. Should we store the
-	// timestamp in some separate table, too?
-	var most_recent_query string = `
-		SELECT vector_timestamp FROM messages
-			WHERE id = (SELECT MAX(id) FROM messages)
-	`
-
-	var timestamp_str = "0,0,0,0,0"
-
-	network.PublicServer.DBPool.QueryRow(
-		context.Background(), most_recent_query,
-	).Scan(&timestamp_str)
-
-	log.Info("Loaded timestamp", timestamp_str, "from the database.")
-
-	return network.FromDbFormat(timestamp_str)
-}
-
-func UpdateServerID() int {
+func InitializeServerID() int {
 	server_id := flag.Int("id", -1, "The ID of the server")
 	flag.Parse()
 
 	if *server_id == -1 {
 		log.Fatalln("Server ID not provided")
-	} else if *server_id < 1 || *server_id > REPLICA_COUNT {
+	} else if *server_id < 1 || *server_id > TOTAL_SERVER_COUNT {
 		log.Fatalln("Server ID out of range")
 	}
 
+	log.Info("Server ID is: ", *server_id)
+
 	network.SelfID = *server_id
-	network.InitializeReplicas(REPLICA_COUNT)
+	network.InitializeClock(TOTAL_SERVER_COUNT)
+
+	network.InitializeReplicas(TOTAL_SERVER_COUNT)
 
 	return *server_id
 }
 
-func Init() {
+func InitializeLogger() {
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 }
 
 func main() {
-	Init()
+	InitializeLogger()
 
-	id := UpdateServerID()
-	log.Info("Server ID: ", id)
+	InitializeServerID()
 
 	db.ConnectToDB()
 

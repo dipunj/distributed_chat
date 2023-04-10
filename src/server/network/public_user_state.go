@@ -25,7 +25,7 @@ func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*
 
 	if old_group_name != "" {
 		// notify the old group that the user has left
-		defer s.broadcastUpdates(old_group_name)
+		defer s.broadcastGroupUpdatesToImmediateMembers(old_group_name)
 	}
 
 	log.Info("Client [", client_id, "] has logged in with Username: ", *msg.UserName)
@@ -50,11 +50,11 @@ func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (
 
 	if old_group_name != "" {
 		// notify the old group that the user has left their group
-		defer s.broadcastUpdates(old_group_name)
+		defer s.broadcastGroupUpdatesToImmediateMembers(old_group_name)
 	}
 
 	// notify the new group that a user has joined the chat
-	defer s.broadcastUpdates(*msg.GroupName)
+	defer s.broadcastGroupUpdatesToImmediateMembers(*msg.GroupName)
 
 	return &response, nil
 }

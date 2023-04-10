@@ -353,12 +353,10 @@ var Public_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalClient interface {
-	// sync online users to and from other replicas
-	SendOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// sync messages to and from other replicas
-	SendMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// sync reactions to and from other replicas
-	SendReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CreateNewMessage(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*Status, error)
+	UpdateReaction(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*Status, error)
+	SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error)
+	SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error)
 	SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error)
 }
 
@@ -370,27 +368,36 @@ func NewInternalClient(cc grpc.ClientConnInterface) InternalClient {
 	return &internalClient{cc}
 }
 
-func (c *internalClient) SendOnlineUsers(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SendOnlineUsers", in, out, opts...)
+func (c *internalClient) CreateNewMessage(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/Internal/CreateNewMessage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *internalClient) SendMessages(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SendMessages", in, out, opts...)
+func (c *internalClient) UpdateReaction(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/Internal/UpdateReaction", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *internalClient) SendReactions(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/Internal/SendReactions", in, out, opts...)
+func (c *internalClient) SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/Internal/SwitchUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *internalClient) SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error) {
+	out := new(GroupDetails)
+	err := c.cc.Invoke(ctx, "/Internal/SwitchGroup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -433,12 +440,10 @@ func (x *internalSubscribeToHeartBeatClient) Recv() (*Status, error) {
 // All implementations must embed UnimplementedInternalServer
 // for forward compatibility
 type InternalServer interface {
-	// sync online users to and from other replicas
-	SendOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error)
-	// sync messages to and from other replicas
-	SendMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error)
-	// sync reactions to and from other replicas
-	SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error)
+	CreateNewMessage(context.Context, *TextMessageWithClock) (*Status, error)
+	UpdateReaction(context.Context, *ReactionWithClock) (*Status, error)
+	SwitchUser(context.Context, *UserState) (*Status, error)
+	SwitchGroup(context.Context, *UserState) (*GroupDetails, error)
 	SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error
 	mustEmbedUnimplementedInternalServer()
 }
@@ -447,14 +452,17 @@ type InternalServer interface {
 type UnimplementedInternalServer struct {
 }
 
-func (UnimplementedInternalServer) SendOnlineUsers(context.Context, *UserStateWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendOnlineUsers not implemented")
+func (UnimplementedInternalServer) CreateNewMessage(context.Context, *TextMessageWithClock) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNewMessage not implemented")
 }
-func (UnimplementedInternalServer) SendMessages(context.Context, *TextMessageWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendMessages not implemented")
+func (UnimplementedInternalServer) UpdateReaction(context.Context, *ReactionWithClock) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateReaction not implemented")
 }
-func (UnimplementedInternalServer) SendReactions(context.Context, *ReactionWithClock) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendReactions not implemented")
+func (UnimplementedInternalServer) SwitchUser(context.Context, *UserState) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SwitchUser not implemented")
+}
+func (UnimplementedInternalServer) SwitchGroup(context.Context, *UserState) (*GroupDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SwitchGroup not implemented")
 }
 func (UnimplementedInternalServer) SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeToHeartBeat not implemented")
@@ -472,56 +480,74 @@ func RegisterInternalServer(s grpc.ServiceRegistrar, srv InternalServer) {
 	s.RegisterService(&Internal_ServiceDesc, srv)
 }
 
-func _Internal_SendOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserStateWithClock)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InternalServer).SendOnlineUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Internal/SendOnlineUsers",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SendOnlineUsers(ctx, req.(*UserStateWithClock))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Internal_SendMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Internal_CreateNewMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TextMessageWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).SendMessages(ctx, in)
+		return srv.(InternalServer).CreateNewMessage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Internal/SendMessages",
+		FullMethod: "/Internal/CreateNewMessage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SendMessages(ctx, req.(*TextMessageWithClock))
+		return srv.(InternalServer).CreateNewMessage(ctx, req.(*TextMessageWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Internal_SendReactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Internal_UpdateReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReactionWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).SendReactions(ctx, in)
+		return srv.(InternalServer).UpdateReaction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Internal/SendReactions",
+		FullMethod: "/Internal/UpdateReaction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SendReactions(ctx, req.(*ReactionWithClock))
+		return srv.(InternalServer).UpdateReaction(ctx, req.(*ReactionWithClock))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_SwitchUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserState)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).SwitchUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/SwitchUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).SwitchUser(ctx, req.(*UserState))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserState)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).SwitchGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/SwitchGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).SwitchGroup(ctx, req.(*UserState))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -555,16 +581,20 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SendOnlineUsers",
-			Handler:    _Internal_SendOnlineUsers_Handler,
+			MethodName: "CreateNewMessage",
+			Handler:    _Internal_CreateNewMessage_Handler,
 		},
 		{
-			MethodName: "SendMessages",
-			Handler:    _Internal_SendMessages_Handler,
+			MethodName: "UpdateReaction",
+			Handler:    _Internal_UpdateReaction_Handler,
 		},
 		{
-			MethodName: "SendReactions",
-			Handler:    _Internal_SendReactions_Handler,
+			MethodName: "SwitchUser",
+			Handler:    _Internal_SwitchUser_Handler,
+		},
+		{
+			MethodName: "SwitchGroup",
+			Handler:    _Internal_SwitchGroup_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

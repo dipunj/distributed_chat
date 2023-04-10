@@ -35,9 +35,9 @@ func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage
 	var row pb.TextMessage
 	var vector_ts []int
 
-	var vector_ts_str = CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+	var vector_ts_str = Clock.Increment().ToDbFormat()
 
-	log.Println(vector_ts_str)
+	log.Info("Vector timestamp for Replica ", SelfID, " is ", vector_ts_str)
 
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
@@ -63,18 +63,31 @@ func insertNewMessage(db *pgxpool.Pool, ctx context.Context, msg *pb.TextMessage
 	return err
 }
 
+func NotifyReplicas(ctx context.Context, msg *pb.TextMessage) {
+	wg := sync.WaitGroup{}
+	msg_with_clock := &pb.TextMessageWithClock{
+		TextMessage: msg,
+		Clock:       Clock.clocks,
+	}
+	for _, replica := range ReplicaState {
+		wg.Add(1)
+		go replica.Client.CreateNewMessage(ctx, msg_with_clock)
+	}
+
+	wg.Wait()
+}
+
 func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	err := insertNewMessage(s.DBPool, ctx, msg, CurrentTimestamp)
+	err := insertNewMessage(s.DBPool, ctx, msg, Clock)
 
 	if err == nil {
-		//		row.ServerReceivedAt = timestamppb.New(serverReceivedAt)
-		//		row.ClientSentAt = timestamppb.New(clientSentAt)
 		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName)
 
-		defer s.broadcastUpdates(msg.GroupName)
+		go NotifyReplicas(ctx, msg)
+		defer s.broadcastGroupUpdatesToImmediateMembers(msg.GroupName)
 
 		return &pb.Status{Status: true}, err
 	} else {
@@ -83,7 +96,14 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	}
 }
 
-func (s *PublicServerType) broadcastUpdates(group_name string) {
+// this function sends the latest view of the group
+// to all the group members
+// the members directly connected to this server are handled trivially by this server
+// members connected to the replicas are handled by the replicas
+// when a new message is received, that message is synced to the replica
+// which triggers the broadcastGroupUpdatesToMembers on the replica automatically
+
+func (s *PublicServerType) broadcastGroupUpdatesToImmediateMembers(group_name string) {
 
 	wait := sync.WaitGroup{}
 	done := make(chan int)
@@ -99,8 +119,8 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 	}
 
 	for _, conn := range s.Subscribers {
-		if conn.group_name == group_name {
-			// online users in the same group
+		// online users in the same group
+		if conn.group_name == group_name && conn.server_id == SelfID {
 			wait.Add(1)
 			go func(msg *pb.GroupDetails, groupMember *ResponseStream) {
 
@@ -117,25 +137,6 @@ func (s *PublicServerType) broadcastUpdates(group_name string) {
 			}(group_update, conn)
 		}
 	}
-
-	// Broadcast to replicas
-	go func() {
-		// TODO
-
-		// Send our vector clock with the newest message
-		msg_w_clock := pb.TextMessageWithClock{
-			TextMessage: recent_messages[len(recent_messages)-1],
-			Clock:       CurrentTimestamp.clocks,
-		}
-
-		for i, replica := range ReplicaState {
-			log.Println("i = ", i)
-			log.Println("rs = ", replica)
-			replica.Client.SendMessages(context.Background(), &msg_w_clock)
-		}
-		wait.Wait()
-		close(done)
-	}()
 
 	<-done
 }
@@ -175,7 +176,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		msg.OnMessageId,
 	)
 
-	vector_ts_str := CurrentTimestamp.Increment(ReplicaId).ToDbFormat()
+	vector_ts_str := Clock.Increment().ToDbFormat()
 
 	server_received_at := time.Now()
 
@@ -200,7 +201,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 	if err != nil && err != pgx.ErrNoRows {
 		log.Error(err)
 	} else {
-		defer s.broadcastUpdates(msg.GroupName)
+		defer s.broadcastGroupUpdatesToImmediateMembers(msg.GroupName)
 	}
 
 	return &pb.Status{Status: true}, nil
@@ -285,6 +286,7 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 	clientID := client.Addr.String()
 
 	rs := &ResponseStream{
+		server_id:  SelfID,
 		stream:     stream,
 		client_id:  clientID,
 		user_name:  "",
@@ -301,7 +303,7 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 
 		// Update the isOnline field of the ResponseStream to false
 		rs.is_online = false
-		s.broadcastUpdates(rs.group_name)
+		s.broadcastGroupUpdatesToImmediateMembers(rs.group_name)
 
 		// Remove the ResponseStream from the Subscribers map
 		delete(s.Subscribers, clientID)
@@ -310,6 +312,7 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 	return <-rs.error
 }
 
+// handles the v command
 func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Empty) (*pb.VisibilityResponse, error) {
 	response := &pb.VisibilityResponse{}
 	for k, replica := range ReplicaState {
