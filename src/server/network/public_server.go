@@ -14,88 +14,50 @@ import (
 )
 
 func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
+
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	err := insertNewMessage(db.DBPool, ctx, msg, Clock)
+	// TODO: increment clock here?
+	err := insertNewMessage(client_id, msg, Clock)
 
-	if err == nil {
-		log.Info("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName)
+	if err != nil {
+		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err.Error())
 
-		go notifyReplicas(ctx, msg)
+		return &pb.Status{Status: false}, err
+	} else {
+		log.Info("[CreateNewMessage]:Success for ", client_id, " with user name ", msg.SenderName)
+
+		log.Debug("[CreateNewMessage] notifying replicas about new message from ", client_id, " with user name ", msg.SenderName)
+		go notifyNewMessageToReplica(client_id, ctx, msg)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
 
 		return &pb.Status{Status: true}, err
-	} else {
-		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err)
-		return &pb.Status{Status: false}, err
 	}
 }
 
 func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
 
-	// This works because (message_type, parent_msg_id, sender_name) is the
-	// same as the unique_reactions index?
-	var update_reaction_query string = `
-		INSERT INTO messages (
-			message_type,
-			client_id,
-			sender_name,
-			group_name,
-			content,
-			parent_msg_id,
-			client_sent_at,
-			server_received_at,
-			vector_ts
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
-		) 
-		ON CONFLICT (message_type, parent_msg_id, sender_name)
-			DO UPDATE SET content = $5
-	`
-
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	log.Info("[UpdateReaction] from",
-		client_id,
-		" with user name",
-		msg.SenderName,
-		" reaction",
-		msg.Content,
-		" on message",
-		msg.OnMessageId,
-	)
-
-	vector_ts_str := Clock.Increment().ToDbFormat()
-
-	server_received_at := time.Now()
-
-	params := []interface{}{
-		"reaction",
-		client_id,
-		msg.SenderName,
-		msg.GroupName,
-		msg.Content, // either "like" or "unlike"
-		msg.OnMessageId,
-		msg.ClientSentAt.AsTime(),
-		server_received_at,
-		vector_ts_str,
-	}
-
-	var row interface{}
-	err := db.DBPool.QueryRow(context.Background(),
-		update_reaction_query,
-		params...,
-	).Scan(&row)
+	// TODO: increment clock here?
+	err := insertNewReaction(client_id, msg, Clock)
 
 	if err != nil && err != pgx.ErrNoRows {
-		log.Error(err)
+		log.Error("[UpdateReaction] for ", client_id, " with user name ", msg.SenderName, err.Error())
+
+		return &pb.Status{Status: false}, nil
 	} else {
+		log.Info("[UpdateReaction]:Success for ", client_id, " with user name ", msg.SenderName)
+
+		log.Debug("[UpdateReaction] notifying replicas about reaction update for ", client_id, " with user name ", msg.SenderName)
+		go notifyReactionUpdateToReplica(client_id, ctx, msg)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
+
+		return &pb.Status{Status: true}, nil
 	}
 
-	return &pb.Status{Status: true}, nil
 }
 
 func (s *PublicServerType) PrintGroupHistory(ctx context.Context, msg *pb.GroupName) (*pb.GroupHistory, error) {
@@ -177,7 +139,7 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 	clientID := client.Addr.String()
 
 	rs := &ResponseStream{
-		server_id:  SelfID,
+		server_id:  SelfServerID,
 		stream:     stream,
 		client_id:  clientID,
 		user_name:  "",
@@ -222,21 +184,11 @@ func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	old_group_name := s.Subscribers[client_id].group_name
-
-	s.Subscribers[client_id].group_name = ""
-	s.Subscribers[client_id].user_name = *msg.UserName
-	s.Subscribers[client_id].server_id = SelfID
+	// TODO: update clock?
+	handleSwitchUser(client_id, SelfServerID, msg, &s.Subscribers, Clock)
+	notifyReplicaAboutUserSwitch(client_id, ctx, msg)
 
 	response := pb.Status{Status: true}
-
-	if old_group_name != "" {
-		// notify the old group that the user has left
-		defer broadcastGroupUpdatesToImmediateMembers(old_group_name, s.Subscribers)
-	}
-
-	log.Info("Client [", client_id, "] has logged in with Username: ", *msg.UserName)
-
 	return &response, nil
 
 }
@@ -246,22 +198,11 @@ func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	log.Info("Current Subscribers")
+	// TODO: update clock?
+	handleSwitchGroup(client_id, SelfServerID, msg, &s.Subscribers, Clock)
+	notifyReplicaAboutGroupSwitch(client_id, ctx, msg)
 
-	old_group_name := s.Subscribers[client_id].group_name
-	s.Subscribers[client_id].group_name = *msg.GroupName
-	s.Subscribers[client_id].user_name = *msg.UserName
 	response := pb.GroupDetails{Status: true}
-
-	log.Info("Client [", client_id, "], username", *msg.UserName, "has switch from group: ", old_group_name, " to ", *msg.GroupName)
-
-	if old_group_name != "" {
-		// notify the old group that the user has left their group
-		defer broadcastGroupUpdatesToImmediateMembers(old_group_name, s.Subscribers)
-	}
-
-	// notify the new group that a user has joined the chat
-	defer broadcastGroupUpdatesToImmediateMembers(*msg.GroupName, s.Subscribers)
 
 	return &response, nil
 }

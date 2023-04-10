@@ -13,10 +13,11 @@ func InitializeReplicas(replica_count int) {
 
 	// populate replica_ids array with ids from 1 to replica_count, except selfID
 	for i := 1; i <= replica_count; i++ {
-		if i != SelfID {
+		if i != SelfServerID {
 			ReplicaIds = append(ReplicaIds, i)
 			// initially we assume all replicas are offline
 			ReplicaState[i] = &ReplicaStateType{
+				Client:            nil,
 				Changed:           make(chan bool),
 				IsOnline:          false,
 				PublicIpAddress:   GetReplicaAddressFromID(i, DEFAULT_PUBLIC_PORT),

@@ -9,8 +9,11 @@ import (
 
 type ResponseStream struct {
 	// denotes the id of the server that the client is currently connected to
-	server_id  int
-	stream     pb.Public_SubscribeServer
+	server_id int
+
+	// will be null if the client is connected to a peer replica
+	stream pb.Public_SubscribeServer
+
 	client_id  string
 	user_name  string
 	group_name string

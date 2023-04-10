@@ -26,7 +26,7 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 	} else {
 		// loop infinitely
 		for {
-			log.Debug("Waiting for heartbeat from replica", replicaId)
+			log.Debug("Waiting for connection state to change from replica", replicaId)
 
 			// the following call is blocking
 			_, err := stream.Recv()

@@ -355,8 +355,8 @@ var Public_ServiceDesc = grpc.ServiceDesc{
 type InternalClient interface {
 	CreateNewMessage(ctx context.Context, in *TextMessageWithClock, opts ...grpc.CallOption) (*Status, error)
 	UpdateReaction(ctx context.Context, in *ReactionWithClock, opts ...grpc.CallOption) (*Status, error)
-	SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error)
-	SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error)
+	SwitchUser(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error)
+	SwitchGroup(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error)
 	SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error)
 }
 
@@ -386,7 +386,7 @@ func (c *internalClient) UpdateReaction(ctx context.Context, in *ReactionWithClo
 	return out, nil
 }
 
-func (c *internalClient) SwitchUser(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*Status, error) {
+func (c *internalClient) SwitchUser(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
 	err := c.cc.Invoke(ctx, "/Internal/SwitchUser", in, out, opts...)
 	if err != nil {
@@ -395,8 +395,8 @@ func (c *internalClient) SwitchUser(ctx context.Context, in *UserState, opts ...
 	return out, nil
 }
 
-func (c *internalClient) SwitchGroup(ctx context.Context, in *UserState, opts ...grpc.CallOption) (*GroupDetails, error) {
-	out := new(GroupDetails)
+func (c *internalClient) SwitchGroup(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
 	err := c.cc.Invoke(ctx, "/Internal/SwitchGroup", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -442,8 +442,8 @@ func (x *internalSubscribeToHeartBeatClient) Recv() (*Status, error) {
 type InternalServer interface {
 	CreateNewMessage(context.Context, *TextMessageWithClock) (*Status, error)
 	UpdateReaction(context.Context, *ReactionWithClock) (*Status, error)
-	SwitchUser(context.Context, *UserState) (*Status, error)
-	SwitchGroup(context.Context, *UserState) (*GroupDetails, error)
+	SwitchUser(context.Context, *UserStateWithClock) (*Status, error)
+	SwitchGroup(context.Context, *UserStateWithClock) (*Status, error)
 	SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error
 	mustEmbedUnimplementedInternalServer()
 }
@@ -458,10 +458,10 @@ func (UnimplementedInternalServer) CreateNewMessage(context.Context, *TextMessag
 func (UnimplementedInternalServer) UpdateReaction(context.Context, *ReactionWithClock) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateReaction not implemented")
 }
-func (UnimplementedInternalServer) SwitchUser(context.Context, *UserState) (*Status, error) {
+func (UnimplementedInternalServer) SwitchUser(context.Context, *UserStateWithClock) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SwitchUser not implemented")
 }
-func (UnimplementedInternalServer) SwitchGroup(context.Context, *UserState) (*GroupDetails, error) {
+func (UnimplementedInternalServer) SwitchGroup(context.Context, *UserStateWithClock) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SwitchGroup not implemented")
 }
 func (UnimplementedInternalServer) SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error {
@@ -517,7 +517,7 @@ func _Internal_UpdateReaction_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _Internal_SwitchUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserState)
+	in := new(UserStateWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -529,13 +529,13 @@ func _Internal_SwitchUser_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: "/Internal/SwitchUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SwitchUser(ctx, req.(*UserState))
+		return srv.(InternalServer).SwitchUser(ctx, req.(*UserStateWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Internal_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserState)
+	in := new(UserStateWithClock)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -547,7 +547,7 @@ func _Internal_SwitchGroup_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/Internal/SwitchGroup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).SwitchGroup(ctx, req.(*UserState))
+		return srv.(InternalServer).SwitchGroup(ctx, req.(*UserStateWithClock))
 	}
 	return interceptor(ctx, in, info, handler)
 }

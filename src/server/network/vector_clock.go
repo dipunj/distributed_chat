@@ -9,13 +9,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type VectorClock struct {
-	clocks []int64
-}
+type VectorClock []int64
 
 var Clock VectorClock
 
-func LoadSavedTimestamp() VectorClock {
+func LoadSavedTimestamp(num_replicas int) VectorClock {
 	// TODO: It's probably possible that the last item in the database doesn't
 	// have the most recent clock values for all replicas. Should we store the
 	// timestamp in some separate table, too?
@@ -36,15 +34,22 @@ func LoadSavedTimestamp() VectorClock {
 }
 
 func InitializeClock(num_replicas int) {
-	Clock = VectorClock{clocks: make([]int64, num_replicas)}
+	// 0th index is unused
+	Clock = make(VectorClock, num_replicas+1)
 }
 
 // Increment the vector clock and return its previous value
-func (vc *VectorClock) Increment() VectorClock {
-	var ret = VectorClock{clocks: make([]int64, len(vc.clocks))}
-	copy(ret.clocks, vc.clocks)
-	vc.clocks[SelfID] += 1
-	return ret
+func (clk *VectorClock) Increment() *VectorClock {
+
+	// Create a copy of the original clock to return as the previous value
+	prevClock := make(VectorClock, len(*clk))
+	copy(prevClock, *clk)
+
+	// Increment the clock for this replica
+	(*clk)[SelfServerID]++
+
+	// Return the previous clock
+	return &prevClock
 }
 
 func maxInt64(a, b int64) int64 {
@@ -54,37 +59,41 @@ func maxInt64(a, b int64) int64 {
 	return b
 }
 
-func (vc *VectorClock) UpdateFrom(other VectorClock) {
-	for i := range vc.clocks {
-		if i != SelfID {
-			vc.clocks[i] = maxInt64(vc.clocks[i], other.clocks[i])
+func (own *VectorClock) UpdateFrom(other VectorClock) {
+	for i := range *own {
+		if i != SelfServerID {
+			(*own)[i] = maxInt64((*own)[i], other[i])
 		}
 	}
 }
 
 // Convert timestamp to a string that can be used in a SQL INSERT statement
-func (vc VectorClock) ToDbFormat() string {
-	var clock_strings = make([]string, len(vc.clocks))
+func (vc *VectorClock) ToDbFormat() string {
+	stringArray := make([]string, len(*vc))
 
-	for i := range clock_strings {
-		clock_strings[i] = strconv.Itoa(int(vc.clocks[i]))
+	for i, val := range *vc {
+		stringArray[i] = strconv.FormatInt(val, 10)
 	}
 
-	return "{" + strings.Join(clock_strings[:], ",") + "}"
+	result := strings.Join(stringArray, ",")
+
+	return "{" + result + "}"
 }
 
+// Convert string in DB format to a VectorClock
 func FromDbFormat(db_str string) VectorClock {
-	var clock_strings = strings.Split(db_str, ",")
-	var clocks = make([]int64, len(clock_strings))
+	db_str = strings.Trim(db_str, "{}")    // Remove the outer braces from the input string
+	strArray := strings.Split(db_str, ",") // Split the string into an array of strings
+	node_count := len(strArray)
 
-	for i := range clocks {
-		c, err := strconv.Atoi(clock_strings[i])
-		if err != nil {
-			clocks[i] = -1
-		} else {
-			clocks[i] = int64(c)
+	vc := make(VectorClock, node_count+1)
+
+	for i, val := range strArray {
+		intVal, err := strconv.ParseInt(val, 10, 64)
+		if err == nil {
+			vc[i] = intVal
 		}
 	}
 
-	return VectorClock{clocks: clocks}
+	return vc
 }

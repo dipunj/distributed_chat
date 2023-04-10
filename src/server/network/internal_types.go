@@ -4,7 +4,6 @@ import (
 	"chat/pb"
 	"net"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 )
 
@@ -15,7 +14,6 @@ type InternalServerType struct {
 	SelfID     int
 	GrpcServer *grpc.Server
 	Listener   net.Listener
-	DBPool     *pgxpool.Pool
 }
 
 type ReplicaStateType struct {

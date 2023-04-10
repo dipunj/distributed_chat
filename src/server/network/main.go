@@ -8,6 +8,26 @@ import (
 	"google.golang.org/grpc"
 )
 
+func ServeInternalRequests() {
+
+	log.Info("[ServeInternalRequests] Starting internal (replication) service at", INTERNAL_ADDRESS)
+
+	InternalServer.GrpcServer = grpc.NewServer()
+
+	// pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServer)
+
+	// Serve() spawns a new goroutine under the hood for each new request
+	l := getTCPListener(INTERNAL_ADDRESS)
+	err := InternalServer.GrpcServer.Serve(l)
+
+	if err != nil {
+		log.Fatalf("[ServeInternalRequests]: Error while starting the gRPC server on the %s listen address %v", l, err.Error())
+	} else {
+		log.Info("[ServeInternalRequests]: Internal Server started")
+	}
+}
+
 func getTCPListener(serverAddress string) net.Listener {
 	l, err := net.Listen("tcp", serverAddress)
 
