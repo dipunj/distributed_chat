@@ -73,10 +73,10 @@ func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithC
 
 	// There's probably a way to do this with a single query, but I'm not smart
 	// enough to know what it is...
-	for i := 1; i < len(vc)+1; i++ {
+	for i := 1; i < len(vc); i++ {
 		params := []interface{}{i, vc[i]}
 		// Check for messages
-		rows, err := db.DBPool.Query(context.Background(), query_str, params)
+		rows, err := db.DBPool.Query(context.Background(), query_str, params...)
 		if err != nil {
 			log.Fatal("Failed in heartbeat query: ", err)
 		}
