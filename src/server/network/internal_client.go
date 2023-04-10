@@ -45,7 +45,10 @@ func DialAndPing(replicaId int) {
 
 		if err == nil {
 			// create a new client
+			state := ReplicaState[replicaId]
 			state.Client = pb.NewInternalClient(conn)
+			ReplicaState[replicaId] = state
+
 			state.IsOnline <- true
 
 			conn_state := conn.GetState()
