@@ -55,11 +55,12 @@ func ServePublicRequests() {
 // This keeps the client-server and replica-replica communication separate
 func ServeInternalRequests() {
 
-	log.Info("Starting internal (replication) service at", INTERNAL_ADDRESS)
+	log.Info("Starting internal (replication) service at ", INTERNAL_ADDRESS)
 
 	InternalServer.GrpcServer = grpc.NewServer()
 
-	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	//	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServerType{})
+	pb.RegisterInternalServer(InternalServer.GrpcServer, &InternalServer)
 
 	// Serve() spawns a new goroutine under the hood for each new request
 	l := getTCPListener(INTERNAL_ADDRESS)
