@@ -43,6 +43,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 	client_id := client.Addr.String()
 
 	// TODO: increment clock here?
+	Clock.Increment()
 	err := insertNewReaction(client_id, msg, Clock)
 
 	if err != nil && err != pgx.ErrNoRows {
