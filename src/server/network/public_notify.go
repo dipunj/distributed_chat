@@ -8,13 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func notifyReactionUpdateToReplica(client_id string, msg *pb.Reaction) {
+func notifyReactionUpdateToReplica(client_id string, msg *pb.Reaction, ts VectorClock) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.ReactionWithClock{
 		ClientId: client_id,
 		Reaction: msg,
-		Clock:    Clock,
+		Clock:    ts,
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {
@@ -32,13 +32,13 @@ func notifyReactionUpdateToReplica(client_id string, msg *pb.Reaction) {
 
 }
 
-func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage) {
+func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage, ts VectorClock) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.TextMessageWithClock{
 		ClientId:    client_id,
 		TextMessage: msg,
-		Clock:       Clock,
+		Clock:       ts,
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {
@@ -55,14 +55,14 @@ func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage) {
 	cancel()
 }
 
-func notifyReplicaAboutUserSwitch(client_id string, msg *pb.UserState) {
+func notifyReplicaAboutUserSwitch(client_id string, msg *pb.UserState, ts VectorClock) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.UserStateWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
 		UserState: msg,
-		Clock:     Clock,
+		Clock:     ts,
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {
@@ -81,14 +81,14 @@ func notifyReplicaAboutUserSwitch(client_id string, msg *pb.UserState) {
 
 }
 
-func notifyReplicaAboutGroupSwitch(client_id string, msg *pb.UserState) {
+func notifyReplicaAboutGroupSwitch(client_id string, msg *pb.UserState, ts VectorClock) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.UserStateWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
 		UserState: msg,
-		Clock:     Clock,
+		Clock:     ts,
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {
@@ -106,14 +106,14 @@ func notifyReplicaAboutGroupSwitch(client_id string, msg *pb.UserState) {
 	cancel()
 }
 
-func notifyReplicaAboutOfflineImmediateUser(client_id string) {
+func notifyReplicaAboutOfflineImmediateUser(client_id string, ts VectorClock) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.ClientIdWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
-		Clock:     Clock,
+		Clock:     ts,
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {

@@ -18,7 +18,7 @@ func InitializeReplicas(replica_count int) {
 			// initially we assume all replicas are offline
 			ReplicaState[i] = &ReplicaStateType{
 				Client:            nil,
-				Changed:           make(chan bool),
+				ShouldSync:        make(chan bool),
 				IsOnline:          false,
 				PublicIpAddress:   GetReplicaAddressFromID(i, DEFAULT_PUBLIC_PORT),
 				InternalIpAddress: GetReplicaAddressFromID(i, DEFAULT_INTERNAL_PORT),

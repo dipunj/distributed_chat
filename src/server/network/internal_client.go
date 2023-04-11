@@ -52,7 +52,11 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 	state.IsOnline = false
 }
 
-func DialAndPing(replicaId int) {
+// this function dials to the replica and
+// hooks onto the replica using a stream
+// when the stream is closed, it will retry to connect to the replica
+
+func DialAndMonitor(replicaId int) {
 
 	state := ReplicaState[replicaId]
 	ip_address := state.InternalIpAddress
@@ -75,6 +79,9 @@ func DialAndPing(replicaId int) {
 
 			// create a new client on this connection
 			state.Client = pb.NewInternalClient(conn)
+
+			SyncReplica(replicaId)
+
 			state.IsOnline = true
 
 			ListenHeartBeat(state, replicaId)
@@ -101,7 +108,7 @@ func ConnectToReplicas() {
 	// if the replica is offline, it will set the replica state to offline and call grpc dial every 1 second
 
 	for _, replicaId := range ReplicaIds {
-		go DialAndPing(replicaId)
+		go DialAndMonitor(replicaId)
 	}
 
 }

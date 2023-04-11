@@ -38,18 +38,16 @@ func InitializeClock(num_replicas int) {
 	Clock = make(VectorClock, num_replicas+1)
 }
 
-// Increment the vector clock and return its previous value
-func (clk *VectorClock) Increment() *VectorClock {
-
-	// Create a copy of the original clock to return as the previous value
-	prevClock := make(VectorClock, len(*clk))
-	copy(prevClock, *clk)
-
+// Increment the vector clock and return a copy of the new clock
+func (clk *VectorClock) Increment() VectorClock {
 	// Increment the clock for this replica
 	(*clk)[SelfServerID]++
 
-	// Return the previous clock
-	return &prevClock
+	// Return a copy of the new clock
+	new_clock := make(VectorClock, len(*clk))
+	copy(new_clock, *clk)
+
+	return new_clock
 }
 
 func maxInt64(a, b int64) int64 {

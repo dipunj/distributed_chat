@@ -26,6 +26,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 	msgTimestamp := msg_w_clock.Clock
 	client_id := msg_w_clock.ClientId
 
+	Clock.UpdateFrom(msgTimestamp)
 	err := insertNewMessage(client_id, msg, msgTimestamp)
 
 	if err == nil {
@@ -59,11 +60,10 @@ func (s *InternalServerType) UpdateReaction(ctx context.Context, msg_w_clock *pb
 
 	msg := msg_w_clock.Reaction
 	client_id := msg_w_clock.ClientId
-	reactionTimestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock
 
-	// TODO: update clock?
-
-	err := insertNewReaction(client_id, msg, reactionTimestamp)
+	Clock.UpdateFrom(msgTimestamp)
+	err := insertNewReaction(client_id, msg, msgTimestamp)
 
 	if err == nil {
 		log.Info("[UpdateReaction] from replica for user with IP at replica",
@@ -85,11 +85,10 @@ func (s *InternalServerType) SwitchUser(ctx context.Context, msg_w_clock *pb.Use
 	user_ip := msg_w_clock.ClientId
 	replica_id := int(msg_w_clock.ReplicaId)
 	msg := msg_w_clock.UserState
-	timestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock
 
-	// TODO: update clock?
-
-	handleSwitchUser(user_ip, replica_id, msg, &PublicServer.Subscribers, timestamp)
+	Clock.UpdateFrom(msgTimestamp)
+	handleSwitchUser(user_ip, replica_id, msg, &PublicServer.Subscribers, msgTimestamp)
 
 	return &pb.Status{Status: true}, nil
 }
@@ -102,11 +101,10 @@ func (s *InternalServerType) SwitchGroup(ctx context.Context, msg_w_clock *pb.Us
 	user_ip := msg_w_clock.ClientId
 	replica_id := int(msg_w_clock.ReplicaId)
 	msg := msg_w_clock.UserState
-	timestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock
 
-	// TODO: update clock?
-
-	handleSwitchGroup(user_ip, replica_id, msg, &PublicServer.Subscribers, timestamp)
+	Clock.UpdateFrom(msgTimestamp)
+	handleSwitchGroup(user_ip, replica_id, msg, &PublicServer.Subscribers, msgTimestamp)
 
 	return &pb.Status{Status: true}, nil
 }
@@ -118,9 +116,10 @@ func (s *InternalServerType) UserIsOffline(ctx context.Context, msg_w_clock *pb.
 
 	user_ip := msg_w_clock.ClientId
 	replica_id := int(msg_w_clock.ReplicaId)
-	timestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock
 
-	handleUserIsOffline(user_ip, replica_id, &PublicServer.Subscribers, timestamp)
+	Clock.UpdateFrom(msgTimestamp)
+	handleUserIsOffline(user_ip, replica_id, &PublicServer.Subscribers, msgTimestamp)
 
 	return &pb.Status{Status: true}, nil
 }

@@ -17,7 +17,9 @@ type InternalServerType struct {
 }
 
 type ReplicaStateType struct {
-	Changed           chan bool
+	// we listen to this channel to know when to sync
+	ShouldSync chan bool
+
 	Client            pb.InternalClient
 	IsOnline          bool
 	PublicIpAddress   string

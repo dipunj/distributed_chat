@@ -19,8 +19,10 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	// TODO: increment clock here?
-	err := insertNewMessage(client_id, msg, Clock)
+	// this is new event, so increment clock
+	clk := Clock.Increment()
+
+	err := insertNewMessage(client_id, msg, clk)
 
 	if err != nil {
 		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err.Error())
@@ -30,7 +32,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 		log.Info("[CreateNewMessage]:Success for ", client_id, " with user name ", msg.SenderName)
 
 		log.Debug("[CreateNewMessage] notifying replicas about new message from ", client_id, " with user name ", msg.SenderName)
-		go notifyNewMessageToReplica(client_id, msg)
+		go notifyNewMessageToReplica(client_id, msg, clk)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
 
 		return &pb.Status{Status: true}, err
@@ -43,8 +45,10 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	// TODO: increment clock here?
-	err := insertNewReaction(client_id, msg, Clock)
+	// this is new event, so increment clock
+	clk := Clock.Increment()
+
+	err := insertNewReaction(client_id, msg, clk)
 
 	if err != nil && err != pgx.ErrNoRows {
 		log.Error("[UpdateReaction] for ", client_id, " with user name ", msg.SenderName, err.Error())
@@ -54,7 +58,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		log.Info("[UpdateReaction]:Success for ", client_id, " with user name ", msg.SenderName)
 
 		log.Debug("[UpdateReaction] notifying replicas about reaction update for ", client_id, " with user name ", msg.SenderName)
-		go notifyReactionUpdateToReplica(client_id, msg)
+		go notifyReactionUpdateToReplica(client_id, msg, clk)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
 
 		return &pb.Status{Status: true}, nil
@@ -160,7 +164,10 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 		// Update the isOnline field of the ResponseStream to false
 		rs.is_online = false
 
-		go notifyReplicaAboutOfflineImmediateUser(clientID)
+		// user going offline is a new event so increment clock
+		clk := Clock.Increment()
+
+		go notifyReplicaAboutOfflineImmediateUser(clientID, clk)
 
 		broadcastGroupUpdatesToImmediateMembers(rs.group_name, s.Subscribers)
 
@@ -175,9 +182,11 @@ func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	// TODO: update clock?
-	handleSwitchUser(client_id, SelfServerID, msg, &s.Subscribers, Clock)
-	go notifyReplicaAboutUserSwitch(client_id, msg)
+	// user going offline is a new event so increment clock
+	clk := Clock.Increment()
+
+	handleSwitchUser(client_id, SelfServerID, msg, &s.Subscribers, clk)
+	go notifyReplicaAboutUserSwitch(client_id, msg, clk)
 
 	response := pb.Status{Status: true}
 	return &response, nil
@@ -190,9 +199,11 @@ func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (
 	client, _ := peer.FromContext(ctx)
 	client_id := client.Addr.String()
 
-	// TODO: update clock?
-	handleSwitchGroup(client_id, SelfServerID, msg, &s.Subscribers, Clock)
-	go notifyReplicaAboutGroupSwitch(client_id, msg)
+	// user going offline is a new event so increment clock
+	clk := Clock.Increment()
+
+	handleSwitchGroup(client_id, SelfServerID, msg, &s.Subscribers, clk)
+	go notifyReplicaAboutGroupSwitch(client_id, msg, clk)
 
 	response := pb.GroupDetails{Status: true}
 
