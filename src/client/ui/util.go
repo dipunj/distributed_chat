@@ -39,7 +39,11 @@ func parseUserInput(trimmedInput string) (string, string, error) {
 	command := trimmedInput[0:1]
 
 	if len(trimmedInput) < 3 {
-		return "", "", errors.New("Command " + command + " takes an argument. Enter h for help")
+		if command == CONNECT || command == SEND_MESSAGE || command == LIKE || command == UNLIKE || command == SWITCH_GROUP || command == SWITCH_USER {
+			return "", "", errors.New("command " + command + " takes an argument. Enter h for help")
+		} else {
+			return "", "", errors.New("invalid command. Enter h for help")
+		}
 	}
 
 	space, arg := trimmedInput[1:2], trimmedInput[2:]
