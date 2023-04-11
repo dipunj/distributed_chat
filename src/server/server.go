@@ -44,6 +44,12 @@ func InitializeLogger() {
 }
 
 func main() {
+	/*
+		id := UpdateServerID()
+		log.Info("Server ID: ", id)
+
+		db.ConnectToDB()
+	*/
 	InitializeLogger()
 
 	InitializeServerID()

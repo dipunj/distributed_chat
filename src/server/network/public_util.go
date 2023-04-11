@@ -29,7 +29,10 @@ func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) err
 			vector_ts
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8
-		) RETURNING 
+		
+		)
+		ON CONFLICT (vector_ts) DO NOTHING
+		RETURNING 
 			id, sender_name, group_name, content, client_sent_at, server_received_at, vector_ts
 	`
 	server_received_at := time.Now()

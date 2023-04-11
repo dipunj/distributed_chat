@@ -12,14 +12,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const REPLICA_CONNECTION_TIMEOUT = 5 * time.Second
 
 func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 
-	stream, err := state.Client.SubscribeToHeartBeat(context.Background(), &emptypb.Empty{})
+	stream, err := state.Client.SubscribeToHeartBeat(context.Background())
 
 	if err != nil {
 		log.Debug("An error occurred in streaming for replica id", replicaId, err.Error())
@@ -28,6 +27,9 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 		for {
 			log.Debug("Waiting for connection state to change from replica", replicaId)
 
+			time.Sleep(500 * time.Millisecond)
+
+			stream.Send(&pb.Clock{Clock: Clock})
 			// the following call is blocking
 			_, err := stream.Recv()
 

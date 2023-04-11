@@ -38,7 +38,7 @@ func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage) {
 	msg_with_clock := &pb.TextMessageWithClock{
 		ClientId:    client_id,
 		TextMessage: msg,
-		Clock:       Clock,
+		Clock:       &pb.Clock{Clock: Clock},
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {

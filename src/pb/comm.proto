@@ -68,6 +68,10 @@ service Public {
 // the clock length is the number of replicas
 // clock[i] is the logical time of replica i for the message. 0-based index.
 
+message Clock {
+  repeated int64 Clock = 1;
+}
+
 message UserStateWithClock {
   string client_id = 1;
   int32 replica_id = 2;
@@ -84,7 +88,7 @@ message ClientIdWithClock {
 message TextMessageWithClock {
   string client_id = 1;
   TextMessage text_message = 2;
-  repeated int64 clock = 3;
+  Clock Clock = 3;
 }
 
 message ReactionWithClock {
@@ -93,9 +97,14 @@ message ReactionWithClock {
   repeated int64 clock = 3;
 }
 
+message HeartbeatResponse {
+  bool status = 1;
+  repeated TextMessageWithClock msg_w_clock = 2;
+  repeated ReactionWithClock react_w_clock = 3;
+}
+
 // this service is used between replicas
 service Internal {
-
   rpc CreateNewMessage(TextMessageWithClock) returns (Status) {}
 
   rpc UpdateReaction(ReactionWithClock) returns (Status) {}
@@ -106,5 +115,11 @@ service Internal {
 
   rpc UserIsOffline(ClientIdWithClock) returns (Status) {}
 
-  rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
+  // We can do synchronization among replicas with a heartbeat.
+  // Repeatedly send the current clock, 
+  // then return any messages that are newer than the current clock.
+  rpc SubscribeToHeartBeat(stream Clock) returns (stream HeartbeatResponse) {}
+
+  // request messages newer than the given clock
+  rpc RequestMessages(Clock) returns (stream TextMessageWithClock) {}
 }

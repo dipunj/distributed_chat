@@ -5,14 +5,31 @@ import (
 	"context"
 
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // we server requests to replicas on a different port
 // This keeps the client-server and replica-replica communication separate
 
-func (s *InternalServerType) SubscribeToHeartBeat(_ *emptypb.Empty, stream pb.Internal_SubscribeToHeartBeatServer) error {
+// Replicas send us their current clocks, and we respond with anything in our database that's newer.
+func (s *InternalServerType) SubscribeToHeartBeat(stream pb.Internal_SubscribeToHeartBeatServer) error {
 	err := make(chan error)
+
+	for {
+		their_clock, err := stream.Recv()
+		if err != nil {
+			break
+		}
+
+		//		new_msgs, new_reacts := GetNewerThan(their_clock.Clock)
+		new_msgs, _ := GetNewerThan(their_clock.Clock)
+
+		log.Info("HEARTBET: ", new_msgs)
+
+		reply := pb.HeartbeatResponse{}
+
+		stream.Send(&reply)
+	}
+
 	return <-err
 }
 
@@ -23,7 +40,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 
 	// i.e any replicated messages will not be forwarded by the server A to other servers")
 	msg := msg_w_clock.TextMessage
-	msgTimestamp := msg_w_clock.Clock
+	msgTimestamp := msg_w_clock.Clock.Clock
 	client_id := msg_w_clock.ClientId
 
 	err := insertNewMessage(client_id, msg, msgTimestamp)
