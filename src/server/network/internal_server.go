@@ -26,7 +26,7 @@ func (s *InternalServerType) SubscribeToHeartBeat(stream pb.Internal_SubscribeTo
 
 		new_msgs, new_reacts := GetNewerThan(their_clock.Clock)
 
-		fmt.Println("Here are the messages we sent them:")
+		fmt.Println("Here are the messages we sent them (", len(new_msgs), ")")
 		for _, nm := range new_msgs {
 			fmt.Println("\t", nm)
 		}

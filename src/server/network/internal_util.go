@@ -69,7 +69,7 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 		client_sent_at     time.Time
 		server_received_at time.Time
 		vector_ts          []int64
-		parent_msg_id      int64
+		parent_msg_id      *int64
 	}
 
 	// There's probably a way to do this with a single query, but I'm not smart
@@ -78,7 +78,6 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 		// Use i+1 since we don't use the first vector clock because of 1-based indexing
 		// SQL uses 1-based indexing, too.
 		params := []interface{}{i + 1, vc[i]}
-		fmt.Println("   QUERY PARAMETERS: i = ", i, "(", i+1, ") vc[i] = ", vc[i])
 		// Check for messages
 		rows, err := db.DBPool.Query(context.Background(), query_str, params...)
 		if err != nil {
@@ -116,6 +115,8 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 					Clock: &pb.Clock{Clock: query_result.vector_ts},
 				}
 
+				fmt.Println("\t", &msg)
+
 				new_messages = append(new_messages, &msg)
 
 			} else if query_result.message_type == "reaction" {
@@ -125,7 +126,7 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 						Id:          &query_result.id,
 						SenderName:  query_result.sender_name,
 						GroupName:   query_result.group_name,
-						OnMessageId: query_result.parent_msg_id,
+						OnMessageId: *query_result.parent_msg_id, // Probably not safe
 						Content:     query_result.content,
 						//						ClientSentAt: query_result.client_sent_at,
 						//						ServerReceivedAt: query_result.server_received_at,
@@ -138,6 +139,9 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 			} else {
 				log.Error("Got unknown message type in query ({})", query_result.message_type)
 			}
+		}
+		if err = rows.Err(); err != nil {
+			log.Error("GetNewerThan: Failed to iterate results ({})", err)
 		}
 	}
 
