@@ -27,7 +27,10 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 		for {
 			//			log.Debug("Waiting for connection state to change from replica", replicaId)
 
-			time.Sleep(500 * time.Millisecond)
+			//			time.Sleep(500 * time.Millisecond)
+			time.Sleep(5 * time.Second)
+
+			//			log.Debug("Sent our timestamp: ", Clock)
 
 			stream.Send(&pb.Clock{Clock: Clock}) // Send our timestamps
 			hb_reply, err := stream.Recv()       // Get items newer than our timestamp
@@ -56,6 +59,7 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 			for _, new_msg := range hb_reply.MsgWClock {
 				insertNewMessage(new_msg.ClientId, new_msg.TextMessage, new_msg.Clock.Clock)
 				Clock.UpdateFrom(new_msg.Clock.Clock)
+				//				log.Debug("Received timestamp: ", new_msg.Clock.Clock)
 			}
 
 			// Apply new reactions

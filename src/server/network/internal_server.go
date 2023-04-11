@@ -4,6 +4,8 @@ import (
 	"chat/pb"
 	"context"
 
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +22,15 @@ func (s *InternalServerType) SubscribeToHeartBeat(stream pb.Internal_SubscribeTo
 			break
 		}
 
+		fmt.Println("They sent us timestamp: ", their_clock)
+
 		new_msgs, new_reacts := GetNewerThan(their_clock.Clock)
+
+		fmt.Println("Here are the messages we sent them:")
+		for _, nm := range new_msgs {
+			fmt.Println("\t", nm)
+		}
+		fmt.Println("\n")
 
 		//		log.Info("new_msgs: ", len(new_msgs), "\nnew_reacts: ", len(new_reacts))
 

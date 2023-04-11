@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -55,7 +56,7 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 			vector_ts,
 			parent_msg_id
 		FROM messages
-		WHERE vector_ts[$1] >= $2
+		WHERE vector_ts[$1] > $2
 	`
 
 	var query_result struct {
@@ -74,7 +75,10 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 	// There's probably a way to do this with a single query, but I'm not smart
 	// enough to know what it is...
 	for i := 1; i < len(vc); i++ {
-		params := []interface{}{i, vc[i]}
+		// Use i+1 since we don't use the first vector clock because of 1-based indexing
+		// SQL uses 1-based indexing, too.
+		params := []interface{}{i + 1, vc[i]}
+		fmt.Println("   QUERY PARAMETERS: i = ", i, "(", i+1, ") vc[i] = ", vc[i])
 		// Check for messages
 		rows, err := db.DBPool.Query(context.Background(), query_str, params...)
 		if err != nil {
@@ -95,7 +99,7 @@ func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWit
 				&query_result.parent_msg_id,
 			)
 
-			log.Debug("YOYOYOYOYOYOYOYO - ", query_result.vector_ts)
+			fmt.Println(query_result)
 
 			if query_result.message_type == "text" {
 				msg := pb.TextMessageWithClock{
