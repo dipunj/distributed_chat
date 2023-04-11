@@ -71,20 +71,22 @@ func PrintGroupHistory() {
 	}
 
 	params := pb.GroupName{GroupName: state.Current_group}
+	state.RenderMu.Lock()
+
 	reply, err := state.ChatClient.PrintGroupHistory(context.Background(), &params)
 
 	if err == nil {
-		state.RenderMu.Lock()
 		// print reply
 		for line_no, m := range reply.Messages {
 			left := fmt.Sprintf("\t%d. [%s] %s", line_no+1, m.SenderName, m.Content)
 			right := fmt.Sprintf("likes: %d", m.LikedBy)
 			fmt.Printf("%s %s\n", left, right)
 		}
-		state.RenderMu.Unlock()
 	} else {
 		log.Error("Couldn't switch user")
 	}
+
+	state.RenderMu.Unlock()
 
 }
 
@@ -122,10 +124,10 @@ func RequestGroupSwitchTo(new_group_name string) bool {
 }
 
 func PrintServerView() {
+	state.RenderMu.Lock()
 	response, err := state.ChatClient.VisibleReplicas(context.Background(), &emptypb.Empty{})
 
 	if err == nil {
-		state.RenderMu.Lock()
 		// print reply
 		fmt.Printf("\tServer ID. [IP4 addr] [Status]\n")
 		for _, replica := range response.Replicas {
@@ -142,11 +144,11 @@ func PrintServerView() {
 
 			fmt.Printf("\t(%d) %s [%s]\n", id, ip_addr, status_text)
 		}
-		state.RenderMu.Unlock()
-
 	} else {
 		log.Error("Couldn't get server view")
 	}
+
+	state.RenderMu.Unlock()
 
 }
 

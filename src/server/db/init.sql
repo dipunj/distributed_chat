@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS MESSAGES (
 	content varchar(90),
 	client_sent_at timestamp with time zone NOT NULL,
 	server_received_at timestamp with time zone NOT NULL,
-	vector_ts BIGINT ARRAY [] NOT NULL,
+	vector_ts BIGINT ARRAY [5] NOT NULL,
 	parent_msg_id int references MESSAGES (id) -- can be NULL
 );
 

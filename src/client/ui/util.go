@@ -103,15 +103,17 @@ func handleSwitchUser(new_user_name string) {
 	}
 
 	// make a network call only if there actually is a change
+	state.RenderMu.Lock()
+
 	if network.RequestUserSwitchTo(new_user_name) {
-		state.RenderMu.Lock()
 		state.Current_user = new_user_name
 		state.Current_group = ""
 		fmt.Print("Username switched. Current username: ", new_user_name)
-		state.RenderMu.Unlock()
 	} else {
 		log.Error("Failed to switch user to: ", new_user_name)
 	}
+
+	state.RenderMu.Unlock()
 }
 
 func handleSwitchGroup(new_group_name string) {
@@ -128,10 +130,14 @@ func handleSwitchGroup(new_group_name string) {
 	}
 
 	// make a network call only if there actually is a change
+
+	// take the lock before making the network call
+	// so that subscribe stream cannot render the screen
+	// before the group switch is complete
+	state.RenderMu.Lock()
+
 	if network.RequestGroupSwitchTo(new_group_name) {
 		// clear the recent messages
-
-		state.RenderMu.Lock()
 		state.RecentMessages.ClearAll()
 		state.Current_group = new_group_name
 
@@ -141,11 +147,11 @@ func handleSwitchGroup(new_group_name string) {
 		} else if oldGroup != "" {
 			fmt.Print("Exiting group:", oldGroup)
 		}
-		state.RenderMu.Unlock()
 	} else {
 		log.Error("Failed to switch group, current group:", oldGroup)
 	}
 
+	state.RenderMu.Unlock()
 }
 
 // reaction_name = "like" | "unlike"
@@ -177,6 +183,7 @@ func RenderGroupDetails() {
 	}
 
 	messages := state.RecentMessages.ListAll()
+
 	os.Stdout.WriteString("\n=======================================\n")
 	os.Stdout.WriteString("Participants: " + strings.Join(state.Current_group_participants, ", ") + "\n")
 	os.Stdout.WriteString("=======================================\n")

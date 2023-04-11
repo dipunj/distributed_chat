@@ -114,7 +114,7 @@ func (s *InternalServerType) SwitchGroup(ctx context.Context, msg_w_clock *pb.Us
 func (s *InternalServerType) UserIsOffline(ctx context.Context, msg_w_clock *pb.ClientIdWithClock) (*pb.Status, error) {
 	log.Debug("[UserIsOffline] (internal server) called")
 	// this method will be called by the server A after
-	// a user switches user name
+	// a user goes offline on server A
 
 	user_ip := msg_w_clock.ClientId
 	replica_id := int(msg_w_clock.ReplicaId)

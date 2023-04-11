@@ -21,3 +21,4 @@ var Rerender chan bool = make(chan bool)
 
 var Wait *sync.WaitGroup = &sync.WaitGroup{}
 var RenderMu sync.Mutex
+var DataMu sync.Mutex

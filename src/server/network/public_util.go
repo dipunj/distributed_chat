@@ -331,6 +331,7 @@ func handleSwitchGroup(user_ip string, on_replica int, msg *pb.UserState, curren
 func handleUserIsOffline(user_ip string, on_replica int, current_subscribers *map[string]*ResponseStream, clock VectorClock) {
 
 	if _, ok := (*current_subscribers)[user_ip]; !ok {
+		// if the user was not present in the map, then add it
 		(*current_subscribers)[user_ip] = &ResponseStream{
 			server_id:  on_replica,
 			stream:     nil,
@@ -342,9 +343,10 @@ func handleUserIsOffline(user_ip string, on_replica int, current_subscribers *ma
 		}
 	} else {
 
-		(*current_subscribers)[user_ip].server_id = on_replica
-		(*current_subscribers)[user_ip].is_online = false
-
+		user_state := (*current_subscribers)[user_ip]
+		user_state.server_id = on_replica
+		user_state.is_online = false
+		log.Debug("Updated user state: ", user_state)
 	}
 
 	old_group_name := (*current_subscribers)[user_ip].group_name

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// a command
 func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMessage) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
@@ -29,13 +30,14 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 		log.Info("[CreateNewMessage]:Success for ", client_id, " with user name ", msg.SenderName)
 
 		log.Debug("[CreateNewMessage] notifying replicas about new message from ", client_id, " with user name ", msg.SenderName)
-		go notifyNewMessageToReplica(client_id, ctx, msg)
+		go notifyNewMessageToReplica(client_id, msg)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
 
 		return &pb.Status{Status: true}, err
 	}
 }
 
+// l or r command
 func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction) (*pb.Status, error) {
 
 	client, _ := peer.FromContext(ctx)
@@ -52,7 +54,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 		log.Info("[UpdateReaction]:Success for ", client_id, " with user name ", msg.SenderName)
 
 		log.Debug("[UpdateReaction] notifying replicas about reaction update for ", client_id, " with user name ", msg.SenderName)
-		go notifyReactionUpdateToReplica(client_id, ctx, msg)
+		go notifyReactionUpdateToReplica(client_id, msg)
 		defer broadcastGroupUpdatesToImmediateMembers(msg.GroupName, s.Subscribers)
 
 		return &pb.Status{Status: true}, nil
@@ -60,6 +62,7 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 
 }
 
+// p command
 func (s *PublicServerType) PrintGroupHistory(ctx context.Context, msg *pb.GroupName) (*pb.GroupHistory, error) {
 	group_name := msg.GroupName
 	var group_recent_messages string = `
@@ -157,16 +160,46 @@ func (s *PublicServerType) Subscribe(_ *emptypb.Empty, stream pb.Public_Subscrib
 		// Update the isOnline field of the ResponseStream to false
 		rs.is_online = false
 
-		broadcastGroupUpdatesToImmediateMembers(rs.group_name, s.Subscribers)
+		go notifyReplicaAboutOfflineImmediateUser(clientID)
 
-		notifyReplicaAboutOfflineImmediateUser(clientID, ctx)
+		broadcastGroupUpdatesToImmediateMembers(rs.group_name, s.Subscribers)
 
 	}()
 
 	return <-rs.error
 }
 
-// handles the v command
+// u command
+func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*pb.Status, error) {
+
+	client, _ := peer.FromContext(ctx)
+	client_id := client.Addr.String()
+
+	// TODO: update clock?
+	handleSwitchUser(client_id, SelfServerID, msg, &s.Subscribers, Clock)
+	go notifyReplicaAboutUserSwitch(client_id, msg)
+
+	response := pb.Status{Status: true}
+	return &response, nil
+
+}
+
+// j command
+func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (*pb.GroupDetails, error) {
+
+	client, _ := peer.FromContext(ctx)
+	client_id := client.Addr.String()
+
+	// TODO: update clock?
+	handleSwitchGroup(client_id, SelfServerID, msg, &s.Subscribers, Clock)
+	go notifyReplicaAboutGroupSwitch(client_id, msg)
+
+	response := pb.GroupDetails{Status: true}
+
+	return &response, nil
+}
+
+// v command
 func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Empty) (*pb.VisibilityResponse, error) {
 	response := &pb.VisibilityResponse{}
 	for k, replica := range ReplicaState {
@@ -178,32 +211,4 @@ func (s *PublicServerType) VisibleReplicas(ctx context.Context, msg *emptypb.Emp
 	}
 
 	return response, nil
-}
-
-func (s *PublicServerType) SwitchUser(ctx context.Context, msg *pb.UserState) (*pb.Status, error) {
-
-	client, _ := peer.FromContext(ctx)
-	client_id := client.Addr.String()
-
-	// TODO: update clock?
-	handleSwitchUser(client_id, SelfServerID, msg, &s.Subscribers, Clock)
-	notifyReplicaAboutUserSwitch(client_id, ctx, msg)
-
-	response := pb.Status{Status: true}
-	return &response, nil
-
-}
-
-func (s *PublicServerType) SwitchGroup(ctx context.Context, msg *pb.UserState) (*pb.GroupDetails, error) {
-
-	client, _ := peer.FromContext(ctx)
-	client_id := client.Addr.String()
-
-	// TODO: update clock?
-	handleSwitchGroup(client_id, SelfServerID, msg, &s.Subscribers, Clock)
-	notifyReplicaAboutGroupSwitch(client_id, ctx, msg)
-
-	response := pb.GroupDetails{Status: true}
-
-	return &response, nil
 }

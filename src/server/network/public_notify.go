@@ -8,7 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func notifyReactionUpdateToReplica(client_id string, ctx context.Context, msg *pb.Reaction) {
+func notifyReactionUpdateToReplica(client_id string, msg *pb.Reaction) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	msg_with_clock := &pb.ReactionWithClock{
 		ClientId: client_id,
 		Reaction: msg,
@@ -26,10 +28,13 @@ func notifyReactionUpdateToReplica(client_id string, ctx context.Context, msg *p
 		}(r_id, client)
 	}
 	wg.Wait()
+	cancel()
 
 }
 
-func notifyNewMessageToReplica(client_id string, ctx context.Context, msg *pb.TextMessage) {
+func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	msg_with_clock := &pb.TextMessageWithClock{
 		ClientId:    client_id,
 		TextMessage: msg,
@@ -47,10 +52,12 @@ func notifyNewMessageToReplica(client_id string, ctx context.Context, msg *pb.Te
 		}(r_id, client)
 	}
 	wg.Wait()
-
+	cancel()
 }
 
-func notifyReplicaAboutUserSwitch(client_id string, ctx context.Context, msg *pb.UserState) {
+func notifyReplicaAboutUserSwitch(client_id string, msg *pb.UserState) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	msg_with_clock := &pb.UserStateWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
@@ -70,10 +77,13 @@ func notifyReplicaAboutUserSwitch(client_id string, ctx context.Context, msg *pb
 
 	}
 	wg.Wait()
+	cancel()
 
 }
 
-func notifyReplicaAboutGroupSwitch(client_id string, ctx context.Context, msg *pb.UserState) {
+func notifyReplicaAboutGroupSwitch(client_id string, msg *pb.UserState) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	msg_with_clock := &pb.UserStateWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
@@ -93,9 +103,13 @@ func notifyReplicaAboutGroupSwitch(client_id string, ctx context.Context, msg *p
 
 	}
 	wg.Wait()
+	cancel()
 }
 
-func notifyReplicaAboutOfflineImmediateUser(client_id string, ctx context.Context) {
+func notifyReplicaAboutOfflineImmediateUser(client_id string) {
+
+	ctx, cancel := context.WithCancel(context.Background())
+
 	msg_with_clock := &pb.ClientIdWithClock{
 		ReplicaId: int32(SelfServerID),
 		ClientId:  client_id,
@@ -108,10 +122,11 @@ func notifyReplicaAboutOfflineImmediateUser(client_id string, ctx context.Contex
 
 		go func(r_id int, client *pb.InternalClient) {
 			defer wg.Done()
-			log.Debug("Notifying replica ", r_id, " about offline user", client_id)
 			(*client).UserIsOffline(ctx, msg_with_clock)
 		}(r_id, client)
 
 	}
+
 	wg.Wait()
+	cancel()
 }

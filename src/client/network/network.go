@@ -119,8 +119,10 @@ func ListenForUpdatesInBackground(conn pb.Public_SubscribeClient) {
 
 		}
 
-		state.RecentMessages.Replace(msg.RecentMessages)
+		state.RenderMu.Lock()
+		state.RecentMessages.Replace(&msg.RecentMessages)
 		state.Current_group_participants = msg.OnlineUserNames
+		state.RenderMu.Unlock()
 		state.Rerender <- true
 	}
 
