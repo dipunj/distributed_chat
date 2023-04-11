@@ -359,6 +359,10 @@ type InternalClient interface {
 	SwitchGroup(ctx context.Context, in *UserStateWithClock, opts ...grpc.CallOption) (*Status, error)
 	UserIsOffline(ctx context.Context, in *ClientIdWithClock, opts ...grpc.CallOption) (*Status, error)
 	SubscribeToHeartBeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Internal_SubscribeToHeartBeatClient, error)
+	// client will call this method to get the latest clock of the server
+	GetLatestClock(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Clock, error)
+	// client will call this method to push new messages to the server
+	PushDBMessages(ctx context.Context, in *DBMessages, opts ...grpc.CallOption) (*Status, error)
 }
 
 type internalClient struct {
@@ -446,6 +450,24 @@ func (x *internalSubscribeToHeartBeatClient) Recv() (*Status, error) {
 	return m, nil
 }
 
+func (c *internalClient) GetLatestClock(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Clock, error) {
+	out := new(Clock)
+	err := c.cc.Invoke(ctx, "/Internal/GetLatestClock", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *internalClient) PushDBMessages(ctx context.Context, in *DBMessages, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/Internal/PushDBMessages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InternalServer is the server API for Internal service.
 // All implementations must embed UnimplementedInternalServer
 // for forward compatibility
@@ -456,6 +478,10 @@ type InternalServer interface {
 	SwitchGroup(context.Context, *UserStateWithClock) (*Status, error)
 	UserIsOffline(context.Context, *ClientIdWithClock) (*Status, error)
 	SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error
+	// client will call this method to get the latest clock of the server
+	GetLatestClock(context.Context, *emptypb.Empty) (*Clock, error)
+	// client will call this method to push new messages to the server
+	PushDBMessages(context.Context, *DBMessages) (*Status, error)
 	mustEmbedUnimplementedInternalServer()
 }
 
@@ -480,6 +506,12 @@ func (UnimplementedInternalServer) UserIsOffline(context.Context, *ClientIdWithC
 }
 func (UnimplementedInternalServer) SubscribeToHeartBeat(*emptypb.Empty, Internal_SubscribeToHeartBeatServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeToHeartBeat not implemented")
+}
+func (UnimplementedInternalServer) GetLatestClock(context.Context, *emptypb.Empty) (*Clock, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLatestClock not implemented")
+}
+func (UnimplementedInternalServer) PushDBMessages(context.Context, *DBMessages) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushDBMessages not implemented")
 }
 func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
@@ -605,6 +637,42 @@ func (x *internalSubscribeToHeartBeatServer) Send(m *Status) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Internal_GetLatestClock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).GetLatestClock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/GetLatestClock",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).GetLatestClock(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Internal_PushDBMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DBMessages)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalServer).PushDBMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Internal/PushDBMessages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalServer).PushDBMessages(ctx, req.(*DBMessages))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Internal_ServiceDesc is the grpc.ServiceDesc for Internal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -631,6 +699,14 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserIsOffline",
 			Handler:    _Internal_UserIsOffline_Handler,
+		},
+		{
+			MethodName: "GetLatestClock",
+			Handler:    _Internal_GetLatestClock_Handler,
+		},
+		{
+			MethodName: "PushDBMessages",
+			Handler:    _Internal_PushDBMessages_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

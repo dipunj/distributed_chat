@@ -112,3 +112,29 @@ func ConnectToReplicas() {
 	}
 
 }
+
+func SyncReplica(replicaId int) {
+	// this function will sync the replica with the current state of the server
+
+	// 1. request replica's latest message's clock
+	// 2. find all the messages happened after the replica's latest message and be
+	// 3. send the messages to the replica
+	state := ReplicaState[replicaId]
+	client := state.Client
+	replica_clock, err := client.GetLatestClock(context.Background(), &emptypb.Empty{})
+
+	messages := GetMessagesAfter(replica_clock.Clock)
+	client.PushDBMessages(context.Background(), &pb.DBMessages{Messages: messages})
+
+}
+
+func GetMessagesAfter(clock int64) []*pb.DBMessages {
+	// this function will return all the messages after the clock
+
+	messages := make([]*pb.DBMessages, 0)
+
+	// query the database to get all the messages after the clock
+	// append the messages to the messages array
+
+	return messages
+}

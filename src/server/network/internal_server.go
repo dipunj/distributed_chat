@@ -123,3 +123,18 @@ func (s *InternalServerType) UserIsOffline(ctx context.Context, msg_w_clock *pb.
 
 	return &pb.Status{Status: true}, nil
 }
+
+func (s *InternalServerType) GetLatestClock(ctx context.Context, _ *emptypb.Empty) (*pb.Clock, error) {
+	log.Debug("[GetLatestClock] (internal server) called")
+
+	// TODO: write query to get the latest clock from the database
+
+	latestClk := Clock
+	return &pb.Clock{Clock: latestClk}, nil
+}
+
+func (s *InternalServerType) PushDBMessages(ctx context.Context, msg *pb.DBMessages) (*pb.Status, error) {
+	log.Debug("[PushDBMessages] (internal server) called")
+
+	// TODO: write query to get insert all the messages from msg into the database
+}

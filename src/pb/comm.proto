@@ -68,6 +68,8 @@ service Public {
 // the clock length is the number of replicas
 // clock[i] is the logical time of replica i for the message. 0-based index.
 
+message Clock { repeated int64 clock = 1; }
+
 message UserStateWithClock {
   string client_id = 1;
   int32 replica_id = 2;
@@ -93,6 +95,21 @@ message ReactionWithClock {
   repeated int64 clock = 3;
 }
 
+message DBSchema {
+  int64 id = 1;
+  string message_type = 2; // "text" | "reaction"
+  string client_id = 3;
+  string sender_name = 4;
+  string group_name = 5;
+  string content = 6;          // "like" | "unlike"
+  int64 parent_message_id = 7; // the message id on which the reaction is done
+  repeated int64 vector_ts = 8;
+  google.protobuf.Timestamp client_sent_at = 17;
+  google.protobuf.Timestamp server_recieved_at = 18;
+}
+
+message DBMessages { repeated DBSchema messages = 1; }
+
 // this service is used between replicas
 service Internal {
 
@@ -107,4 +124,10 @@ service Internal {
   rpc UserIsOffline(ClientIdWithClock) returns (Status) {}
 
   rpc SubscribeToHeartBeat(google.protobuf.Empty) returns (stream Status) {}
+
+  // client will call this method to get the latest clock of the server
+  rpc GetLatestClock(google.protobuf.Empty) returns (Clock) {}
+
+  // client will call this method to push new messages to the server
+  rpc PushDBMessages(DBMessages) returns (Status) {}
 }
