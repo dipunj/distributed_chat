@@ -40,8 +40,7 @@ func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) err
 	var row pb.TextMessage
 	var vector_ts []int
 
-	// TODO use the ts from argument
-	var vector_ts_str = Clock.Increment().ToDbFormat()
+	var vector_ts_str = ts.ToDbFormat()
 
 	log.Info("Current Vector timestamp is", vector_ts_str)
 
@@ -95,7 +94,8 @@ func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) error
 		msg.OnMessageId,
 	)
 
-	vector_ts_str := Clock.Increment().ToDbFormat()
+	//	vector_ts_str := Clock.Increment().ToDbFormat()
+	vector_ts_str := ts.ToDbFormat()
 
 	server_received_at := time.Now()
 

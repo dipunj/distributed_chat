@@ -19,7 +19,7 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	client_id := client.Addr.String()
 
 	// TODO: increment clock here?
-	err := insertNewMessage(client_id, msg, Clock)
+	err := insertNewMessage(client_id, msg, *Clock.Increment())
 
 	if err != nil {
 		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err.Error())

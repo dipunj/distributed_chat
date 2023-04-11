@@ -94,7 +94,7 @@ message TextMessageWithClock {
 message ReactionWithClock {
   string client_id = 1;
   Reaction reaction = 2;
-  repeated int64 clock = 3;
+  Clock Clock = 3;
 }
 
 message HeartbeatResponse {

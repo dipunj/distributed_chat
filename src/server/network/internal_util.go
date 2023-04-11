@@ -35,12 +35,12 @@ func InitializeReplicas(replica_count int) {
 
 }
 
-func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithClock) {
+func GetNewerThan(vc VectorClock) ([]*pb.TextMessageWithClock, []*pb.ReactionWithClock) {
 	// Query the database for any messages, reactions, etc. that are newer
 	// than the given timestamp.
 
-	new_messages := []pb.TextMessageWithClock{}
-	new_reactions := []pb.ReactionWithClock{}
+	new_messages := []*pb.TextMessageWithClock{}
+	new_reactions := []*pb.ReactionWithClock{}
 
 	query_str := `
 		SELECT
@@ -55,7 +55,7 @@ func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithC
 			vector_ts,
 			parent_msg_id
 		FROM messages
-		WHERE message_type = 'text' AND vector_ts[$1] > $2
+		WHERE vector_ts[$1] >= $2
 	`
 
 	var query_result struct {
@@ -68,7 +68,7 @@ func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithC
 		client_sent_at     time.Time
 		server_received_at time.Time
 		vector_ts          []int64
-		parent_msg_id      int
+		parent_msg_id      int64
 	}
 
 	// There's probably a way to do this with a single query, but I'm not smart
@@ -95,6 +95,8 @@ func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithC
 				&query_result.parent_msg_id,
 			)
 
+			log.Debug("YOYOYOYOYOYOYOYO - ", query_result.vector_ts)
+
 			if query_result.message_type == "text" {
 				msg := pb.TextMessageWithClock{
 					ClientId: query_result.client_id,
@@ -103,16 +105,31 @@ func GetNewerThan(vc VectorClock) ([]pb.TextMessageWithClock, []pb.ReactionWithC
 						SenderName: query_result.sender_name,
 						GroupName:  query_result.group_name,
 						Content:    query_result.content,
-						LikedBy:    0, // TODO: This isn't right.
+						LikedBy:    0, // TODO: Is this right?
 						//						ClientSentAt: query_result.client_sent_at,
 						//						ServerReceivedAt: query_result.server_received_at,
 					},
 					Clock: &pb.Clock{Clock: query_result.vector_ts},
 				}
 
-				new_messages = append(new_messages, msg)
+				new_messages = append(new_messages, &msg)
 
 			} else if query_result.message_type == "reaction" {
+				react := pb.ReactionWithClock{
+					ClientId: query_result.client_id,
+					Reaction: &pb.Reaction{
+						Id:          &query_result.id,
+						SenderName:  query_result.sender_name,
+						GroupName:   query_result.group_name,
+						OnMessageId: query_result.parent_msg_id,
+						Content:     query_result.content,
+						//						ClientSentAt: query_result.client_sent_at,
+						//						ServerReceivedAt: query_result.server_received_at,
+					},
+					Clock: &pb.Clock{Clock: query_result.vector_ts},
+				}
+
+				new_reactions = append(new_reactions, &react)
 
 			} else {
 				log.Error("Got unknown message type in query ({})", query_result.message_type)

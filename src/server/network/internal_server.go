@@ -20,12 +20,11 @@ func (s *InternalServerType) SubscribeToHeartBeat(stream pb.Internal_SubscribeTo
 			break
 		}
 
-		//		new_msgs, new_reacts := GetNewerThan(their_clock.Clock)
-		new_msgs, _ := GetNewerThan(their_clock.Clock)
+		new_msgs, new_reacts := GetNewerThan(their_clock.Clock)
 
-		log.Info("HEARTBET: ", new_msgs)
+		//		log.Info("new_msgs: ", len(new_msgs), "\nnew_reacts: ", len(new_reacts))
 
-		reply := pb.HeartbeatResponse{}
+		reply := pb.HeartbeatResponse{MsgWClock: new_msgs, ReactWClock: new_reacts}
 
 		stream.Send(&reply)
 	}
@@ -33,6 +32,7 @@ func (s *InternalServerType) SubscribeToHeartBeat(stream pb.Internal_SubscribeTo
 	return <-err
 }
 
+/*
 func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *pb.TextMessageWithClock) (*pb.Status, error) {
 	log.Debug("[CreateNewMessage] (internal server) called")
 	// this method will be called by the server A after
@@ -40,10 +40,10 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 
 	// i.e any replicated messages will not be forwarded by the server A to other servers")
 	msg := msg_w_clock.TextMessage
-	msgTimestamp := msg_w_clock.Clock.Clock
+	//	msgTimestamp := msg_w_clock.Clock.Clock
 	client_id := msg_w_clock.ClientId
 
-	err := insertNewMessage(client_id, msg, msgTimestamp)
+	err := insertNewMessage(client_id, msg, *Clock.Increment())
 
 	if err == nil {
 		log.Info("[CreateNewMessage] from replica",
@@ -67,6 +67,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 	}
 
 }
+*/
 
 func (s *InternalServerType) UpdateReaction(ctx context.Context, msg_w_clock *pb.ReactionWithClock) (*pb.Status, error) {
 	log.Debug("[UpdateReaction] (internal server) called")
@@ -80,7 +81,7 @@ func (s *InternalServerType) UpdateReaction(ctx context.Context, msg_w_clock *pb
 
 	// TODO: update clock?
 
-	err := insertNewReaction(client_id, msg, reactionTimestamp)
+	err := insertNewReaction(client_id, msg, reactionTimestamp.Clock)
 
 	if err == nil {
 		log.Info("[UpdateReaction] from replica for user with IP at replica",

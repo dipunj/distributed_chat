@@ -12,7 +12,7 @@ func notifyReactionUpdateToReplica(client_id string, ctx context.Context, msg *p
 	msg_with_clock := &pb.ReactionWithClock{
 		ClientId: client_id,
 		Reaction: msg,
-		Clock:    Clock,
+		Clock:    &pb.Clock{Clock: Clock},
 	}
 	var wg sync.WaitGroup
 	for r_id, replica := range ReplicaState {

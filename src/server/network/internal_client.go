@@ -25,13 +25,12 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 	} else {
 		// loop infinitely
 		for {
-			log.Debug("Waiting for connection state to change from replica", replicaId)
+			//			log.Debug("Waiting for connection state to change from replica", replicaId)
 
 			time.Sleep(500 * time.Millisecond)
 
-			stream.Send(&pb.Clock{Clock: Clock})
-			// the following call is blocking
-			_, err := stream.Recv()
+			stream.Send(&pb.Clock{Clock: Clock}) // Send our timestamps
+			hb_reply, err := stream.Recv()       // Get items newer than our timestamp
 
 			if err != nil {
 				code := status.Code(err)
@@ -47,6 +46,23 @@ func ListenHeartBeat(state *ReplicaStateType, replicaId int) {
 				}
 				// break because there is an error with the connection
 				break
+			}
+
+			// TODO: I don't think the way of updating the vector timestamps is
+			// correct. What happens if we have a recent message but are missing
+			// an older message from the replica?
+
+			// Apply new messages
+			for _, new_msg := range hb_reply.MsgWClock {
+				insertNewMessage(new_msg.ClientId, new_msg.TextMessage, new_msg.Clock.Clock)
+				Clock.UpdateFrom(new_msg.Clock.Clock)
+			}
+
+			// Apply new reactions
+			for _, new_react := range hb_reply.ReactWClock {
+				insertNewReaction(new_react.ClientId, new_react.Reaction, new_react.Clock.Clock)
+				Clock[replicaId] = maxInt64(Clock[replicaId], new_react.Clock.Clock[replicaId])
+				Clock.UpdateFrom(new_react.Clock.Clock)
 			}
 		}
 	}
