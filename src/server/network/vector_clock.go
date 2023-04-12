@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type VectorClock []int64
@@ -40,6 +41,8 @@ func InitializeClock(num_replicas int) {
 	ClockMu.Lock()
 
 	Clock = make(VectorClock, num_replicas+1)
+	res, _ := InternalServer.GetLatestClock(context.Background(), &emptypb.Empty{})
+	Clock = res.Clock
 
 	ClockMu.Unlock()
 }

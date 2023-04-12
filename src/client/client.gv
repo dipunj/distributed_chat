@@ -1,0 +1,79 @@
+digraph gocallvis {
+    label="command-line-arguments";
+    labeljust="l";
+    fontname="Arial";
+    fontsize="14";
+    rankdir="LR";
+    bgcolor="lightgray";
+    style="solid";
+    penwidth="0.5";
+    pad="0.0";
+    nodesep="0.35";
+
+    node [shape="box" style="filled,rounded" fillcolor="honeydew" fontname="Verdana" penwidth="1.0" margin="0.05,0.0"];
+    edge [minlen="2"]
+
+    subgraph "cluster_focus" {
+        bgcolor="#e6ecfa";
+label="main";
+labelloc="t";
+labeljust="c";
+fontsize="18";
+        
+        "command-line-arguments.main" [ fillcolor="lightblue" label="main" penwidth="0.5" tooltip="command-line-arguments.main | defined in client.go:9\nat client.go:16: calling [(*os.File).WriteString]\nat client.go:18: calling [(*sync.WaitGroup).Add]\nat client.go:19: calling [(*sync.WaitGroup).Done]\nat client.go:20: calling [chat/client/ui.UserViewLoop]\nat client.go:23: calling [chat/client/ui.UserInputLoop]" ]
+        
+        subgraph "cluster_chat/client/ui" {
+        fontname="Tahoma bold";
+label="ui";
+URL="/?f=chat/client/ui";
+penwidth="0.8";
+style="filled";
+fillcolor="lightyellow";
+rank="sink";
+tooltip="package: chat/client/ui";
+fontsize="16";
+        
+        "chat/client/ui.UserViewLoop" [ fillcolor="moccasin" label="UserViewLoop" penwidth="1.5" tooltip="chat/client/ui.UserViewLoop | defined in main.go:38" ]
+        "chat/client/ui.UserInputLoop" [ fillcolor="moccasin" label="UserInputLoop" penwidth="1.5" tooltip="chat/client/ui.UserInputLoop | defined in main.go:21" ]
+        
+    }
+
+        subgraph "cluster_os" {
+        rank="sink";
+URL="/?f=os";
+tooltip="package: os";
+fillcolor="#E0FFE1";
+fontsize="16";
+style="filled";
+fontname="Tahoma bold";
+label="os";
+penwidth="0.8";
+        
+        "(*os.File).WriteString" [ fillcolor="#adedad" label="(*File).WriteString" penwidth="1.5" tooltip="(*os.File).WriteString | defined in file.go:250" ]
+        
+    }
+
+        subgraph "cluster_sync" {
+        penwidth="0.8";
+fontsize="16";
+style="filled";
+fontname="Tahoma bold";
+rank="sink";
+URL="/?f=sync";
+tooltip="package: sync";
+fillcolor="#E0FFE1";
+label="sync";
+        
+        "(*sync.WaitGroup).Add" [ fillcolor="#adedad" label="(*WaitGroup).Add" penwidth="1.5" tooltip="(*sync.WaitGroup).Add | defined in waitgroup.go:62" ]
+        "(*sync.WaitGroup).Done" [ fillcolor="#adedad" label="(*WaitGroup).Done" penwidth="1.5" tooltip="(*sync.WaitGroup).Done | defined in waitgroup.go:107" ]
+        
+    }
+
+    }
+
+    "command-line-arguments.main" -> "(*os.File).WriteString" [ color="saddlebrown" tooltip="at client.go:16: calling [(*os.File).WriteString]" ]
+    "command-line-arguments.main" -> "(*sync.WaitGroup).Add" [ color="saddlebrown" tooltip="at client.go:18: calling [(*sync.WaitGroup).Add]" ]
+    "command-line-arguments.main" -> "(*sync.WaitGroup).Done" [ arrowhead="normalnoneodiamond" color="saddlebrown" tooltip="at client.go:19: calling [(*sync.WaitGroup).Done]" ]
+    "command-line-arguments.main" -> "chat/client/ui.UserViewLoop" [ arrowhead="normalnoneodot" color="saddlebrown" tooltip="at client.go:20: calling [chat/client/ui.UserViewLoop]" ]
+    "command-line-arguments.main" -> "chat/client/ui.UserInputLoop" [ color="saddlebrown" tooltip="at client.go:23: calling [chat/client/ui.UserInputLoop]" ]
+}
