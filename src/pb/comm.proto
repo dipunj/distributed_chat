@@ -5,7 +5,7 @@ import "google/protobuf/empty.proto";
 option go_package = "./pb";
 
 message TextMessage {
-  optional int64 id = 16;
+  optional string id = 16;
   string sender_name = 2;
   string group_name = 3;
   string content = 5;
@@ -15,11 +15,11 @@ message TextMessage {
 }
 
 message Reaction {
-  optional int64 id = 16;
+  optional string id = 16;
   string sender_name = 2;
   string group_name = 3;
-  int64 on_message_id = 4; // the message id on which the reaction is done
-  string content = 5;      // "like" | "unlike"
+  string on_message_id = 4; // the message id on which the reaction is done
+  string content = 5;       // "like" | "unlike"
   optional google.protobuf.Timestamp clientSentAt = 17;
   optional google.protobuf.Timestamp serverReceivedAt = 18;
 }
@@ -96,16 +96,16 @@ message ReactionWithClock {
 }
 
 message DBSchema {
-  int64 id = 1;
+  string id = 1;
   string message_type = 2; // "text" | "reaction"
   string client_id = 3;
   string sender_name = 4;
   string group_name = 5;
-  string content = 6;          // "like" | "unlike"
-  int64 parent_message_id = 7; // the message id on which the reaction is done
+  string content = 6;       // "like" | "unlike"
+  string parent_msg_id = 7; // the message id on which the reaction is done
   repeated int64 vector_ts = 8;
   google.protobuf.Timestamp client_sent_at = 17;
-  google.protobuf.Timestamp server_recieved_at = 18;
+  google.protobuf.Timestamp server_received_at = 18;
 }
 
 message DBMessages { repeated DBSchema messages = 1; }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,6 +13,7 @@ import (
 type VectorClock []int64
 
 var Clock VectorClock
+var ClockMu sync.Mutex
 
 func LoadSavedTimestamp(num_replicas int) VectorClock {
 	// TODO: It's probably possible that the last item in the database doesn't
@@ -35,11 +37,19 @@ func LoadSavedTimestamp(num_replicas int) VectorClock {
 
 func InitializeClock(num_replicas int) {
 	// 0th index is unused
+	ClockMu.Lock()
+
 	Clock = make(VectorClock, num_replicas+1)
+
+	ClockMu.Unlock()
 }
 
 // Increment the vector clock and return a copy of the new clock
 func (clk *VectorClock) Increment() VectorClock {
+	log.Debug("Incrementing clock. Value before incrementing: ", *clk)
+	ClockMu.Lock()
+	defer ClockMu.Unlock()
+
 	// Increment the clock for this replica
 	(*clk)[SelfServerID]++
 
@@ -47,6 +57,7 @@ func (clk *VectorClock) Increment() VectorClock {
 	new_clock := make(VectorClock, len(*clk))
 	copy(new_clock, *clk)
 
+	log.Debug("Incrementing clock. Value after incrementing: ", *clk, new_clock)
 	return new_clock
 }
 
@@ -58,11 +69,15 @@ func maxInt64(a, b int64) int64 {
 }
 
 func (own *VectorClock) UpdateFrom(other VectorClock) {
+	ClockMu.Lock()
+
 	for i := range *own {
 		if i != SelfServerID {
 			(*own)[i] = maxInt64((*own)[i], other[i])
 		}
 	}
+
+	ClockMu.Unlock()
 }
 
 // Convert timestamp to a string that can be used in a SQL INSERT statement

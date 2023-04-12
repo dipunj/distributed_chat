@@ -33,6 +33,7 @@ func notifyReactionUpdateToReplica(client_id string, msg *pb.Reaction, ts Vector
 }
 
 func notifyNewMessageToReplica(client_id string, msg *pb.TextMessage, ts VectorClock) {
+	log.Debug("Notifying replicas about new message from client_id", client_id, " with id", *msg.Id)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	msg_with_clock := &pb.TextMessageWithClock{

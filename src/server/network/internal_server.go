@@ -2,8 +2,11 @@ package network
 
 import (
 	"chat/pb"
+	"chat/server/db"
 	"context"
+	"database/sql"
 
+	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -27,7 +30,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 	client_id := msg_w_clock.ClientId
 
 	Clock.UpdateFrom(msgTimestamp)
-	err := insertNewMessage(client_id, msg, msgTimestamp)
+	_, err := insertNewMessage(client_id, msg, msgTimestamp)
 
 	if err == nil {
 		log.Info("[CreateNewMessage] from replica",
@@ -63,7 +66,7 @@ func (s *InternalServerType) UpdateReaction(ctx context.Context, msg_w_clock *pb
 	msgTimestamp := msg_w_clock.Clock
 
 	Clock.UpdateFrom(msgTimestamp)
-	err := insertNewReaction(client_id, msg, msgTimestamp)
+	_, err := insertNewReaction(client_id, msg, msgTimestamp)
 
 	if err == nil {
 		log.Info("[UpdateReaction] from replica for user with IP at replica",
@@ -128,13 +131,88 @@ func (s *InternalServerType) GetLatestClock(ctx context.Context, _ *emptypb.Empt
 	log.Debug("[GetLatestClock] (internal server) called")
 
 	// TODO: write query to get the latest clock from the database
+	latest_clock_query := `
+		SELECT vector_ts
+		FROM messages 
+		WHERE
+			vector_ts[$1] = (
+				SELECT MAX(vector_ts[$1])
+				FROM messages
+			)
+		ORDER BY server_received_at DESC
+		LIMIT 1
+		`
 
-	latestClk := Clock
+	var latestClk []int64
+
+	row := db.DBPool.QueryRow(context.Background(), latest_clock_query, SelfServerID+1)
+
+	err := row.Scan(&latestClk)
+	if err != nil {
+		log.Error("[GetLatestClock]", err.Error(), "Returning Clock: ", Clock)
+		return &pb.Clock{Clock: Clock}, nil
+	}
+
 	return &pb.Clock{Clock: latestClk}, nil
 }
 
 func (s *InternalServerType) PushDBMessages(ctx context.Context, msg *pb.DBMessages) (*pb.Status, error) {
 	log.Debug("[PushDBMessages] (internal server) called")
 
-	// TODO: write query to get insert all the messages from msg into the database
+	tx, err := db.DBPool.Begin(ctx)
+	if err != nil {
+		log.Error("[PushDBMessages] error in begin transaction", err.Error())
+		return &pb.Status{Status: false}, err
+	}
+
+	batch := &pgx.Batch{}
+
+	messages := msg.Messages
+	insert_query := `INSERT INTO messages (
+				id,
+				message_type,
+				client_id,
+				sender_name,
+				group_name,
+				content,
+				parent_msg_id,
+				vector_ts,
+				client_sent_at,
+				server_received_at
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			) ON CONFLICT (vector_ts) DO NOTHING`
+
+	for _, message := range messages {
+
+		parentMsgID := sql.NullString{}
+		if message.ParentMsgId != "" {
+			parentMsgID = sql.NullString{String: message.ParentMsgId, Valid: true}
+		}
+
+		batch.Queue(insert_query,
+			message.Id,
+			message.MessageType,
+			message.ClientId,
+			message.SenderName,
+			message.GroupName,
+			message.Content,
+			parentMsgID,
+			message.VectorTs,
+			message.ClientSentAt.AsTime(),
+			message.ServerReceivedAt.AsTime())
+	}
+
+	results := db.DBPool.SendBatch(context.Background(), batch)
+
+	if err := results.Close(); err != nil {
+		log.Error("Failed to execute batch: %v\n", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("Unable to commit transaction: %v\n", err)
+	}
+
+	return &pb.Status{Status: true}, nil
 }

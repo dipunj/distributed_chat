@@ -6,11 +6,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON SEQUENCES TO postgres;
 
 GRANT ALL PRIVILEGES ON DATABASE postgres TO postgres;
 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- add index on message_type
 -- add index on group_name
 -- add index on message_id
 CREATE TABLE IF NOT EXISTS MESSAGES (
-	id SERIAL primary key,
+	id uuid primary key DEFAULT uuid_generate_v4(),
 	message_type varchar(20),
 	client_id varchar(55),
 	sender_name varchar(128),
@@ -19,7 +21,7 @@ CREATE TABLE IF NOT EXISTS MESSAGES (
 	client_sent_at timestamp with time zone NOT NULL,
 	server_received_at timestamp with time zone NOT NULL,
 	vector_ts BIGINT ARRAY [5] NOT NULL,
-	parent_msg_id int references MESSAGES (id) -- can be NULL
+	parent_msg_id uuid references MESSAGES (id) -- can be NULL
 );
 
 -- for faster access on each group
@@ -28,3 +30,5 @@ CREATE INDEX IF NOT EXISTS group_name_msg_type on MESSAGES(group_name, message_t
 -- a username can have only one reaction per message
 -- hence the same sender_name and parent_msg_id must not occur twice in the table
 CREATE UNIQUE INDEX IF NOT EXISTS unique_reactions ON MESSAGES (message_type, parent_msg_id, sender_name);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_ts ON MESSAGES (vector_ts);

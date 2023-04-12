@@ -38,7 +38,7 @@ func SendMessage(content string) bool {
 	return err == nil
 }
 
-func SendReaction(reaction string, message_id int64) bool {
+func SendReaction(reaction string, message_id string) bool {
 	if state.Current_user == "" {
 		log.Error("Please first log in as a user")
 		return false

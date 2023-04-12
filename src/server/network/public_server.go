@@ -22,7 +22,9 @@ func (s *PublicServerType) CreateNewMessage(ctx context.Context, msg *pb.TextMes
 	// this is new event, so increment clock
 	clk := Clock.Increment()
 
-	err := insertNewMessage(client_id, msg, clk)
+	rowId, err := insertNewMessage(client_id, msg, clk)
+	msg.Id = &rowId
+	log.Debug("[CreateNewMessage] rowId ", rowId)
 
 	if err != nil {
 		log.Error("[CreateNewMessage] for ", client_id, " with user name ", msg.SenderName, err.Error())
@@ -48,7 +50,8 @@ func (s *PublicServerType) UpdateReaction(ctx context.Context, msg *pb.Reaction)
 	// this is new event, so increment clock
 	clk := Clock.Increment()
 
-	err := insertNewReaction(client_id, msg, clk)
+	rowId, err := insertNewReaction(client_id, msg, clk)
+	msg.Id = &rowId
 
 	if err != nil && err != pgx.ErrNoRows {
 		log.Error("[UpdateReaction] for ", client_id, " with user name ", msg.SenderName, err.Error())
@@ -101,7 +104,7 @@ func (s *PublicServerType) PrintGroupHistory(ctx context.Context, msg *pb.GroupN
 
 	for rows.Next() {
 		var message struct {
-			id                 int64
+			id                 string
 			sender_name        string
 			group_name         string
 			content            string

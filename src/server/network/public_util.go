@@ -13,12 +13,15 @@ import (
 
 // inserts new message into database
 // with vector timestamp ts
-func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) error {
+func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) (string, error) {
 
 	log.Debug("[insertNewMessage] Inserting new message into database")
 
-	var new_message_query string = `
+	server_received_at := time.Now()
+
+	new_message_query := `
 		INSERT INTO messages (
+			id,
 			message_type,
 			client_id,
 			sender_name,
@@ -28,21 +31,14 @@ func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) err
 			server_received_at,
 			vector_ts
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			coalesce($1, uuid_generate_v4()),
+			$2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING 
 			id, sender_name, group_name, content, client_sent_at, server_received_at, vector_ts
 	`
-	server_received_at := time.Now()
-
-	var row pb.TextMessage
-	var vector_ts []int
-
-	// TODO use the ts from argument
-	var vector_ts_str = Clock.Increment().ToDbFormat()
-
-	log.Info("Current Vector timestamp is", vector_ts_str)
 
 	params := []interface{}{
+		msg.Id,
 		"text",
 		client_id,
 		msg.SenderName,
@@ -50,22 +46,32 @@ func insertNewMessage(client_id string, msg *pb.TextMessage, ts VectorClock) err
 		msg.Content,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
-		vector_ts_str,
+		ts,
 	}
+
+	var row pb.TextMessage
 
 	var clientSentAt time.Time
 	var serverReceivedAt time.Time
+	var vector_ts []int
+
 	err := db.DBPool.QueryRow(context.Background(),
 		new_message_query,
 		params...,
 	).Scan(&row.Id, &row.SenderName, &row.GroupName, &row.Content, &clientSentAt, &serverReceivedAt, &vector_ts)
 
-	return err
+	return *row.Id, err
 }
 
-func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) error {
+func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) (string, error) {
+
+	log.Debug("[insertNewReaction] Inserting new reaction into database")
+
+	server_received_at := time.Now()
+
 	var update_reaction_query string = `
 		INSERT INTO messages (
+			id,
 			message_type,
 			client_id,
 			sender_name,
@@ -76,45 +82,35 @@ func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) error
 			server_received_at,
 			vector_ts
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
+			coalesce($1, uuid_generate_v4()),
+			$2, $3, $4, $5, $6, $7, $8, $9, $10
 		) 
 		ON CONFLICT (message_type, parent_msg_id, sender_name)
 			DO UPDATE SET content = $5
+		RETURNING
+			id
 	`
 
-	log.Info("[UpdateReaction] from",
-		client_id,
-		" with user name",
-		msg.SenderName,
-		" reaction",
-		msg.Content,
-		" on message",
-		msg.OnMessageId,
-	)
-
-	vector_ts_str := Clock.Increment().ToDbFormat()
-
-	server_received_at := time.Now()
-
 	params := []interface{}{
+		msg.Id,
 		"reaction",
 		client_id,
 		msg.SenderName,
 		msg.GroupName,
-		msg.Content, // either "like" or "unlike"
+		msg.Content, // either "like" or "unlike" or ""
 		msg.OnMessageId,
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
-		vector_ts_str,
+		ts,
 	}
 
-	var row interface{}
+	var rowId string
 	err := db.DBPool.QueryRow(context.Background(),
 		update_reaction_query,
 		params...,
-	).Scan(&row)
+	).Scan(&rowId)
 
-	return err
+	return rowId, err
 }
 
 // this function sends the latest view of the group
@@ -222,7 +218,7 @@ func getRecentMessages(group_name string) []*pb.TextMessage {
 
 	for rows.Next() {
 		var message struct {
-			id                 int64
+			id                 string
 			sender_name        string
 			group_name         string
 			content            string

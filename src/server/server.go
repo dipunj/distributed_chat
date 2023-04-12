@@ -31,9 +31,6 @@ func InitializeServerID() int {
 	log.Info("Server ID is: ", *server_id)
 
 	network.SelfServerID = *server_id
-	network.InitializeClock(TOTAL_SERVER_COUNT)
-
-	network.InitializeReplicas(TOTAL_SERVER_COUNT)
 
 	return *server_id
 }
@@ -47,6 +44,9 @@ func main() {
 	InitializeLogger()
 
 	InitializeServerID()
+
+	network.InitializeClock(TOTAL_SERVER_COUNT)
+	network.InitializeReplicas(TOTAL_SERVER_COUNT)
 
 	db.ConnectToDB(network.SelfServerID)
 
