@@ -80,13 +80,15 @@ func DialAndMonitor(replicaId int) {
 
 			// create a new client on this connection
 			state.Client = pb.NewInternalClient(conn)
-
 			SyncReplica(replicaId)
 
 			state.IsOnline = true
 
-			// the following call is blocking
+			// the following call is blocking as long as the connection is alive
 			ListenHeartBeat(state, replicaId)
+
+			// once the connection is lost, update the list of active users and groups
+			markReplicaUsersOffline(replicaId)
 
 			if !state.IsOnline {
 				// if the replica is offline, close the connection

@@ -161,6 +161,29 @@ func broadcastGroupUpdatesToImmediateMembers(group_name string, subscribers map[
 	<-done
 }
 
+func markReplicaUsersOffline(replica_id int) {
+	// go lang doesn't have inbuilt set implementation
+	// following is a work around to get unique user names in a group
+
+	subscribers := &PublicServer.Subscribers
+
+	log.Debug("Updating user list in all groups about replica id", replica_id, "going offline")
+
+	groups := make(map[string]bool)
+
+	for _, conn := range *subscribers {
+		if conn.server_id == replica_id {
+			conn.is_online = false
+			groups[conn.group_name] = true
+		}
+	}
+
+	for group_name := range groups {
+		// notify the old group that the user has left
+		defer broadcastGroupUpdatesToImmediateMembers(group_name, *subscribers)
+	}
+}
+
 func getOnlineUsers(group_name string, subscribers map[string]*ResponseStream) []string {
 	// go lang doesn't have inbuilt set implementation
 	// following is a work around to get unique user names in a group
