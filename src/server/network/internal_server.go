@@ -57,6 +57,7 @@ func (s *InternalServerType) CreateNewMessage(ctx context.Context, msg_w_clock *
 
 func (s *InternalServerType) UpdateReaction(ctx context.Context, msg_w_clock *pb.ReactionWithClock) (*pb.Status, error) {
 	log.Debug("[UpdateReaction] (internal server) called")
+
 	// this method will be called by the server A after
 	// a reaction update is sent to server A DIRECTLY by the client
 	// i.e any replicated reaction update will not be forwarded by the server A to other servers

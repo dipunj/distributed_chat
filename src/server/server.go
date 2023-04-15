@@ -45,10 +45,11 @@ func main() {
 
 	InitializeServerID()
 
-	network.InitializeClock(TOTAL_SERVER_COUNT)
-	network.InitializeReplicas(TOTAL_SERVER_COUNT)
-
 	db.ConnectToDB(network.SelfServerID)
+
+	network.InitializeClock(TOTAL_SERVER_COUNT)
+
+	network.InitializeReplicas(TOTAL_SERVER_COUNT)
 
 	go network.ServeInternalRequests()
 

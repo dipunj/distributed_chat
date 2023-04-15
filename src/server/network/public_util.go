@@ -86,7 +86,7 @@ func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) (stri
 			$2, $3, $4, $5, $6, $7, $8, $9, $10
 		) 
 		ON CONFLICT (message_type, parent_msg_id, sender_name)
-			DO UPDATE SET content = $5
+			DO UPDATE SET content = $6
 		RETURNING
 			id
 	`
@@ -102,6 +102,21 @@ func insertNewReaction(client_id string, msg *pb.Reaction, ts VectorClock) (stri
 		msg.ClientSentAt.AsTime(),
 		server_received_at,
 		ts,
+	}
+
+	if msg.Content == "unlike" {
+		params = []interface{}{
+			msg.Id,
+			"reaction",
+			client_id,
+			msg.SenderName,
+			msg.GroupName,
+			"", // either "like" or ""
+			msg.OnMessageId,
+			msg.ClientSentAt.AsTime(),
+			server_received_at,
+			ts,
+		}
 	}
 
 	var rowId string
@@ -220,7 +235,7 @@ func getRecentMessages(group_name string) []*pb.TextMessage {
 		FROM
 			messages text_message
 		LEFT JOIN
-			messages like_message on like_message.parent_msg_id = text_message.id
+			messages like_message on like_message.parent_msg_id = text_message.id and like_message.content != ''
 		WHERE
 			text_message.group_name = $1
 			and text_message.message_type = 'text'
