@@ -1,12 +1,6 @@
-# Project 1: Group Chat
+# Distributed Group Chat
 
 Language Used: Go(version go1.19.5) with gRPC and protobuf 3
-
-**Final Design doc can be found at**: docs/dig44-final_design.pdf
-
-Contributers: 
-	
-1. Dipunj Gupta (dig44@pitt.edu)
 
 Invoke all the commands in the directory where docker-compose.yml file is located (i.e project root directory).
 
